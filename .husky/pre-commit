@@ -1,0 +1,13 @@
+#!/bin/sh
+# コミット前の軽量チェック（frontend は変更ファイルの lint/format/型、backend は compile）
+set -e
+REPO_ROOT=$(git rev-parse --show-toplevel)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+if echo "$STAGED" | grep -q '^frontend/'; then
+  (cd "$REPO_ROOT/frontend" && pnpm exec lint-staged)
+fi
+
+if echo "$STAGED" | grep -q '^backend/.*\.java$'; then
+  (cd "$REPO_ROOT/backend" && ./mvnw -q compile -Dcheckstyle.skip)
+fi

@@ -10,7 +10,8 @@ AI駆動開発（Claude Code）を前提とした Spring Boot + Next.js Web ア�
 |---|---|
 | `backend/web-core/` | Web 基盤部品（JWT 認証・Security 設定・例外階層と共通エラー応答・ページング）。**全機能はここの部品を利用する** |
 | `backend/web-sample/` | サンプル業務（`auth` 認証・`message` CRUD）。API 定義は `src/main/resources/api/openapi.yaml`（SSoT） |
-| `frontend/` | Next.js アプリ |
+| `frontend/src/core/` | フロント基盤（API クライアント（Orval 生成）・認証・i18n・共通 UI）。**全画面はここの部品を利用する** |
+| `frontend/src/features/messages/` | サンプル業務の画面部品・フック・入力検証 |
 | `docs/` | 設計ドキュメント（SSoT） |
 | `docs/projects/{案件}/` | 案件別の要件定義書・設計書の格納先（Skills が生成） |
 | `.claude/skills/` | 工程別 Skills とハーネス Skills |
@@ -31,6 +32,11 @@ cd backend
 ./mvnw clean verify -DskipITs -Djacoco.haltOnFailure=false   # 結合テスト除外（カバレッジ不足では止めない）
 docker compose -f ../docker/compose.yaml up -d   # ローカルDB起動
 java -jar web-sample/target/web-sample-*.jar --spring.profiles.active=local   # admin/admin123・viewer/viewer123
+
+cd frontend
+pnpm generate:api                 # openapi.yaml から API クライアントを再生成（API 定義を変えたら必須）
+pnpm lint && pnpm format:check && pnpm type-check && pnpm test:coverage && pnpm build
+pnpm test:e2e                     # backend を local プロファイルで起動してから実行
 ```
 
 ## 禁止事項
