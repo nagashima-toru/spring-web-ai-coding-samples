@@ -34,6 +34,7 @@ cd frontend && pnpm install && pnpm dev          # 画面（http://localhost:300
 | [docs/architecture.md](docs/architecture.md) | 方式設計書（SSoT）: 構成・API 設計・認証/認可・エラー処理・DB・命名・テスト方針 |
 | [docs/development-guide.md](docs/development-guide.md) | 開発手順: 環境構築〜Skills を使った工程フロー〜PR |
 | [docs/coding-standards.md](docs/coding-standards.md) | コーディング規約（Java・TypeScript） |
+| [docs/aws-setup.md](docs/aws-setup.md) | AWS セットアップ手順（CD・ECS・ALB・シークレット） |
 | [CLAUDE.md](CLAUDE.md) | Claude Code 向けプロジェクトガイド（規約・禁止事項） |
 
 ## 構成
@@ -49,7 +50,7 @@ cd frontend && pnpm install && pnpm dev          # 画面（http://localhost:300
 ├── docs/              # 方式設計・開発ガイド・コーディング規約（SSoT）
 ├── .claude/skills/    # 工程別 Skills（要件定義→設計→実装→テスト→レビュー→E2E）
 ├── vault/             # AI 協働ハーネスの作業領域（計画票・タスク票）
-├── .github/workflows/ # CI（backend・frontend・E2E）
+├── .github/workflows/ # CI（backend・frontend・E2E）/ CD（タグ push → ECR → ECS）
 └── docker/            # ローカル用 PostgreSQL
 ```
 
@@ -60,12 +61,17 @@ cd frontend && pnpm install && pnpm dev          # 画面（http://localhost:300
 3. `web-sample` の `message` と `frontend/src/features/messages` を参考に業務機能を作成（サンプルは削除してよい。`auth`・基盤部品・docs は残す）
 4. Claude Code で `/requirements` から工程を開始（[開発ガイド](docs/development-guide.md) 参照）
 
+## CD（デプロイ）の前提設定
+
+タグ `v*` の push で backend・frontend のイメージを ECR へ push し、ECS サービスを更新します。AWS 側（OIDC・IAM・ECR・ECS・ALB・Secrets Manager）と GitHub Environments の設定手順は **[docs/aws-setup.md](docs/aws-setup.md)** を参照してください。
+
 ## ライセンス
 
 [MIT License](LICENSE) の下で公開しています。Copyright (c) 2026 Toru Nagashima
 
 ## 注意事項
 
+- `docs/aws-setup.md` の AWS アカウント ID（`123456789012`）・ARN は例示値です。実際の値に置き換えて使ってください
 - ローカル用の DB パスワード・JWT 署名鍵（`docker/compose.yaml`・`application-local.yml`）はローカル専用の固定値です。本番は Secrets Manager / SSM から環境変数で注入してください
 - リフレッシュトークンの保管庫は既定でメモリ保持です。複数タスクで運用する場合は DB/Redis 実装に差し替えてください
 - 本リポジトリは学習・雛形用のサンプルで、無保証です（LICENSE のとおり）

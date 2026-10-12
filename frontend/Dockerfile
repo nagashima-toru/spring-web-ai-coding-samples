@@ -2,9 +2,6 @@
 FROM node:24-alpine AS base
 WORKDIR /app
 
-# Install git (required for prepare script in package.json)
-RUN apk add --no-cache git
-
 # Install pnpm (pinned to match CI; newer majors ignore the package.json "pnpm" field)
 RUN npm install -g pnpm@9
 

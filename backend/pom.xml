@@ -45,6 +45,7 @@
         <spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <openapi-generator.version>7.26.0</openapi-generator.version>
+        <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
 
         <!-- 静的解析設定はリポジトリ直下の config/ を共有する -->
         <config.dir>${maven.multiModuleProjectDirectory}/../config</config.dir>
@@ -96,6 +97,11 @@
                     <groupId>org.openapitools</groupId>
                     <artifactId>openapi-generator-maven-plugin</artifactId>
                     <version>${openapi-generator.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.google.cloud.tools</groupId>
+                    <artifactId>jib-maven-plugin</artifactId>
+                    <version>${jib-maven-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
