@@ -1,0 +1,65 @@
+# ===========================
+# Frontend .gitignore
+# Node.js/Next.js/pnpm specific rules
+# ===========================
+#
+# 管理ルールについては ../docs/GITIGNORE_RULES.md を参照
+# このファイルには Node.js、pnpm、Next.js、TypeScript 固有のルールを記述
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+.pnpm-store/
+
+# Testing
+/coverage
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+/dist
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env files
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Orval generated files
+# Note: Generated files are now committed to ensure Docker builds work in CI
+# Regenerate with: pnpm generate:api when backend OpenAPI spec changes
+# DO NOT manually edit files in src/core/api/generated/
+
+# Storybook
+storybook-static
+.storybook/build
+
+# Vitest
+.vitest/
+*storybook.log

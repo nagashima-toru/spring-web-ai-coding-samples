@@ -53,3 +53,126 @@ jobs:
           name: backend-jacoco-reports
           path: backend/**/target/site/jacoco/
           retention-days: 7
+
+  # lint・format・型・単体/コンポーネントテスト（カバレッジ閾値つき）・Storybook テスト・本番ビルド
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      - name: pnpm セットアップ
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 依存インストール
+        run: pnpm install --frozen-lockfile
+
+      - name: 生成 API クライアントが API 定義と一致しているか確認
+        run: |
+          pnpm generate:api
+          git diff --exit-code -- src/core/api/generated || {
+            echo "::error::src/core/api/generated が openapi.yaml と一致しません。pnpm generate:api を実行してコミットしてください"
+            exit 1
+          }
+
+      - name: Lint・フォーマット
+        run: pnpm lint && pnpm format:check
+
+      - name: 型チェック
+        run: pnpm type-check
+
+      - name: 単体・コンポーネントテスト（カバレッジ）
+        run: pnpm test:coverage
+
+      - name: Playwright ブラウザ
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Storybook テスト
+        run: pnpm test:storybook
+
+      - name: 本番ビルド
+        run: pnpm build
+
+  # backend（local プロファイル: 初期ユーザー投入）＋ frontend を起動して Playwright で E2E を実行する
+  e2e:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: webdb
+          POSTGRES_USER: web_admin
+          POSTGRES_PASSWORD: web_admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U web_admin -d webdb"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      - name: JDK 25 セットアップ
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: backend ビルド
+        working-directory: backend
+        run: ./mvnw --batch-mode --no-transfer-progress package -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip
+
+      - name: backend 起動
+        working-directory: backend
+        run: |
+          nohup java -jar web-sample/target/web-sample-*.jar --spring.profiles.active=local > backend.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/actuator/health && exit 0; sleep 2; done
+          cat backend.log; exit 1
+
+      - name: pnpm セットアップ
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 依存インストール・ブラウザ
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      - name: E2E テスト
+        working-directory: frontend
+        run: pnpm test:e2e
+
+      - name: レポートのアップロード（失敗時の調査用）
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report/
+            backend/backend.log
+          retention-days: 7

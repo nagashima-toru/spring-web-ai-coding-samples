@@ -1,0 +1,77 @@
+{
+  "login": {
+    "title": "ログイン",
+    "subtitle": "メッセージ管理システムにログインしてください",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "submit": "ログイン",
+    "submitting": "ログイン中...",
+    "error": "ログインに失敗しました。ユーザー名またはパスワードが正しくありません。",
+    "devAccounts": "開発環境用アカウント:",
+    "adminLabel": "管理者",
+    "viewerLabel": "閲覧者"
+  },
+  "navigation": {
+    "logout": "ログアウト"
+  },
+  "messages": {
+    "pageTitle": "メッセージ管理",
+    "pageDescription": "すべてのメッセージを一元管理します",
+    "newMessage": "新規作成",
+    "table": {
+      "id": "ID",
+      "code": "コード",
+      "content": "コンテンツ",
+      "actions": "操作",
+      "sortBy": "{field}でソート",
+      "sortByAsc": "{field}でソート（昇順）",
+      "sortByDesc": "{field}でソート（降順）"
+    },
+    "form": {
+      "codeLabel": "コード",
+      "contentLabel": "コンテンツ",
+      "codePlaceholder": "メッセージコードを入力",
+      "contentPlaceholder": "メッセージ内容を入力",
+      "saving": "保存中...",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "close": "閉じる",
+      "viewTitle": "メッセージ詳細",
+      "createDescription": "新しいメッセージの詳細を入力してください。",
+      "editDescription": "メッセージの詳細を更新してください。",
+      "viewDescription": "メッセージ詳細（閲覧のみ）"
+    },
+    "modal": {
+      "createTitle": "メッセージ作成",
+      "editTitle": "メッセージ編集"
+    },
+    "deleteDialog": {
+      "title": "メッセージ削除",
+      "description": "このメッセージを削除してもよいですか？この操作は取り消せません。",
+      "codeLabel": "コード:",
+      "contentLabel": "コンテンツ:",
+      "deleting": "削除中...",
+      "delete": "削除",
+      "cancel": "キャンセル"
+    },
+    "searchPlaceholder": "コードまたはコンテンツで検索...",
+    "loading": "メッセージを読み込み中...",
+    "loadError": "メッセージの読み込みに失敗しました。後でもう一度お試しください。",
+    "noMessages": "メッセージはありません。",
+    "noMessagesHint": "最初のメッセージを作成してください。",
+    "readOnlyInfo": "閲覧のみ可能です。変更するには管理者に連絡してください。",
+    "noSearchResults": "検索条件に一致するメッセージはありません。",
+    "noSearchResultsHint": "別の検索語を試してください。",
+    "errors": {
+      "conflict": "このコードのメッセージは既に存在します。別のコードを使用してください。",
+      "notFound": "メッセージが見つかりません。既に削除されている可能性があります。",
+      "badRequest": "入力が正しくありません。データを確認してください。",
+      "serverError": "サーバーエラーが発生しました。後でもう一度お試しください。",
+      "networkError": "ネットワークエラーが発生しました。接続を確認してもう一度お試しください。",
+      "unexpected": "予期しないエラーが発生しました。もう一度お試しください。"
+    }
+  },
+  "common": {
+    "loading": "読み込み中..."
+  }
+}
