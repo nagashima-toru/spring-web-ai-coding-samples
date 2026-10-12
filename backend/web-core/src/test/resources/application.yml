@@ -1,0 +1,9 @@
+app:
+  security:
+    jwt:
+      secret: test-secret-key-for-unit-tests-0123456789
+    public-paths:
+      - /public/**
+    cors:
+      allowed-origins:
+        - http://localhost:3000

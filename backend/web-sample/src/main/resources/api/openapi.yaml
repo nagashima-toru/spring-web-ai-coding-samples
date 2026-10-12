@@ -1,0 +1,576 @@
+openapi: 3.0.1
+info:
+  title: Web Sample API
+  description: |
+    web-sample の API 定義（SSoT）。Controller インタフェースとモデル（backend）、
+    API クライアント（frontend）はこの定義から生成する。
+
+    すべてのエラーレスポンスは RFC 9457 (Problem Details) 形式に従います。
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発サーバー
+
+tags:
+  - name: Auth
+    description: 認証・認可API
+  - name: Message
+    description: メッセージ管理API
+
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: ログイン
+      description: |
+        ユーザー名とパスワードでログインし、JWTトークンを取得します。
+      operationId: login
+      security: []  # 認証不要
+      requestBody:
+        description: ログイン情報
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: トークンリフレッシュ
+      description: |
+        リフレッシュトークンを使用して新しいアクセストークンを取得します。
+      operationId: refreshToken
+      security: []  # トークン検証のみ
+      requestBody:
+        description: リフレッシュトークン
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: リフレッシュ成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: ログアウト
+      description: |
+        リフレッシュトークンを無効化してログアウトします。
+      operationId: logout
+      requestBody:
+        description: リフレッシュトークン
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '204':
+          description: ログアウト成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/users/me:
+    get:
+      tags:
+        - Auth
+      summary: ユーザー情報取得
+      description: |
+        現在ログイン中のユーザー情報を取得します。
+        レスポンスにはユーザー名とロール情報が含まれます。
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: ユーザー情報取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/messages:
+    get:
+      tags:
+        - Message
+      summary: メッセージ一覧取得
+      description: |
+        すべてのメッセージを取得します。ページネーションに対応しています。
+      operationId: getAllMessages
+      parameters:
+        - name: page
+          in: query
+          description: ページ番号（0から始まる）
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+            minimum: 0
+            maximum: 10000
+        - name: size
+          in: query
+          description: 1ページあたりの件数
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Message
+      summary: メッセージ作成
+      description: |
+        新しいメッセージを作成します。
+      operationId: createMessage
+      requestBody:
+        description: 作成するメッセージの情報
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+      responses:
+        '201':
+          description: 作成成功
+          headers:
+            Location:
+              description: 作成されたメッセージのURI
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/messages/{id}:
+    get:
+      tags:
+        - Message
+      summary: メッセージ取得
+      description: IDでメッセージを取得します
+      operationId: getMessageById
+      parameters:
+        - name: id
+          in: path
+          description: メッセージID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Message
+      summary: メッセージ更新
+      description: 既存のメッセージを更新します
+      operationId: updateMessage
+      parameters:
+        - name: id
+          in: path
+          description: メッセージID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        description: 更新するメッセージの情報
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - Message
+      summary: メッセージ削除
+      description: メッセージを削除します
+      operationId: deleteMessage
+      parameters:
+        - name: id
+          in: path
+          description: メッセージID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    # RFC 7807 共通スキーマ
+    ProblemDetail:
+      type: object
+      description: |
+        RFC 7807 Problem Details for HTTP APIs
+        エラー情報を標準化された形式で提供します。
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: エラーの種類を識別するURI
+          example: 'https://api.example.com/errors/validation-error'
+        title:
+          type: string
+          description: エラーの概要
+          example: 'Validation Error'
+        status:
+          type: integer
+          format: int32
+          description: HTTPステータスコード
+          example: 400
+        detail:
+          type: string
+          description: エラーの詳細説明
+          example: 'The request body contains invalid fields.'
+        instance:
+          type: string
+          description: エラーが発生したリクエストのURI
+          example: '/api/messages'
+        timestamp:
+          type: string
+          format: date-time
+          description: エラー発生日時
+          example: '2024-01-01T00:00:00Z'
+        errors:
+          type: array
+          description: バリデーションエラーの詳細リスト
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      description: バリデーションエラーの詳細
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: エラーが発生したフィールド名
+          example: 'code'
+        rejectedValue:
+          nullable: true
+          description: 拒否された値（型は項目による）
+          example: ''
+        message:
+          type: string
+          description: エラーメッセージ
+          example: 'コードは必須です'
+
+    # 認証関連スキーマ
+    LoginRequest:
+      type: object
+      description: ログインリクエスト
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: ユーザー名
+          minLength: 1
+          maxLength: 50
+          example: 'admin'
+        password:
+          type: string
+          description: パスワード
+          minLength: 1
+          example: 'admin123'
+
+    LoginResponse:
+      type: object
+      description: ログインレスポンス
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          description: アクセストークン（JWT）
+          example: 'eyJhbGciOiJIUzI1NiIs...'
+        refreshToken:
+          type: string
+          description: リフレッシュトークン（JWT）
+          example: 'eyJhbGciOiJIUzI1NiIs...'
+        tokenType:
+          type: string
+          description: トークンタイプ
+          example: 'Bearer'
+        expiresIn:
+          type: integer
+          format: int32
+          description: アクセストークンの有効期限（秒）
+          example: 3600
+
+    RefreshRequest:
+      type: object
+      description: トークンリフレッシュリクエスト
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: リフレッシュトークン
+          example: 'eyJhbGciOiJIUzI1NiIs...'
+
+    UserResponse:
+      type: object
+      description: ユーザー情報レスポンス
+      required:
+        - username
+        - role
+      properties:
+        username:
+          type: string
+          description: ユーザー名
+          example: 'admin'
+        role:
+          type: string
+          description: ユーザーロール
+          enum:
+            - ADMIN
+            - VIEWER
+          example: 'ADMIN'
+
+    # メッセージ関連スキーマ
+    MessageRequest:
+      type: object
+      description: メッセージ作成・更新リクエスト
+      required:
+        - code
+        - content
+      properties:
+        code:
+          type: string
+          description: メッセージコード（一意）
+          minLength: 1
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: 'MSG_001'
+        content:
+          type: string
+          description: メッセージ内容
+          minLength: 1
+          maxLength: 255
+          example: 'Hello, World!'
+
+    MessageResponse:
+      type: object
+      description: メッセージレスポンス
+      required:
+        - id
+        - code
+        - content
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: メッセージID
+          example: 1
+        code:
+          type: string
+          description: メッセージコード
+          example: 'MSG_001'
+        content:
+          type: string
+          description: メッセージ内容
+          example: 'Hello, World!'
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: '2024-01-01T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: '2024-01-01T00:00:00Z'
+
+    MessagePage:
+      type: object
+      description: ページネーション対応メッセージ一覧
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          description: メッセージのリスト
+          items:
+            $ref: '#/components/schemas/MessageResponse'
+        page:
+          type: object
+          description: ページネーション情報
+          required:
+            - size
+            - number
+            - totalElements
+            - totalPages
+          properties:
+            size:
+              type: integer
+              format: int32
+              description: 1ページあたりの件数
+              example: 20
+            number:
+              type: integer
+              format: int32
+              description: 現在のページ番号
+              example: 0
+            totalElements:
+              type: integer
+              format: int64
+              description: 全体の件数
+              example: 100
+            totalPages:
+              type: integer
+              format: int32
+              description: 全ページ数
+              example: 5
+
+  responses:
+    # 共通エラーレスポンス
+    BadRequest:
+      description: バリデーションエラー
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    Unauthorized:
+      description: 認証エラー
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    Forbidden:
+      description: 認可エラー（権限不足）
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    Conflict:
+      description: 競合エラー
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    InternalServerError:
+      description: サーバー内部エラー
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT認証トークン
+
+# デフォルトでは全エンドポイントで認証が必要
+# （個別のエンドポイントで security: [] を指定すると認証不要にできる）
+security:
+  - BearerAuth: []
