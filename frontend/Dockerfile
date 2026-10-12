@@ -8,8 +8,9 @@ RUN npm install -g pnpm@9
 # Dependencies stage
 FROM base AS deps
 
-# Copy package files
+# Copy package files (patches/ is referenced by pnpm.patchedDependencies)
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Install dependencies (ignore prepare script as it requires git)
 RUN pnpm install --frozen-lockfile --ignore-scripts
