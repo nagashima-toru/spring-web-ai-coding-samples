@@ -20,6 +20,11 @@
     <name>web-core</name>
     <description>Web 基盤部品（共通ライブラリ）</description>
 
+    <properties>
+        <!-- ライブラリのためコンテナイメージは作らない（CD の -am 指定で jib が走っても飛ばす） -->
+        <jib.skip>true</jib.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>

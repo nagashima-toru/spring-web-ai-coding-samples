@@ -1,0 +1,90 @@
+# CD: バージョンタグ（v*）の push で backend・frontend のイメージをビルドして ECR へ push し、
+#     ECS タスク定義を新イメージで更新してサービスをデプロイする
+#
+# AWS 認証は OIDC（アクセスキー不使用）。事前設定は docs/aws-setup.md を参照:
+#   - AWS 側: GitHub OIDC プロバイダと、ECR push / ECS 更新権限を持つ IAM ロール
+#   - GitHub 側（Settings > Environments > production の Variables）:
+#       AWS_REGION / AWS_ROLE_ARN / ECS_CLUSTER
+#       ECR_REPOSITORY_BACKEND / ECS_TASK_FAMILY_BACKEND / ECS_SERVICE_BACKEND
+#       ECR_REPOSITORY_FRONTEND / ECS_TASK_FAMILY_FRONTEND / ECS_SERVICE_FRONTEND
+name: CD
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # OIDC トークン発行に必要
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      - name: JDK 25 セットアップ
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: AWS 認証（OIDC）
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: ECR ログイン
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: backend イメージのビルド＆push（Jib。テストは CI 済みのためスキップ）
+        working-directory: backend
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress -pl web-sample -am \
+            -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip \
+            package jib:build \
+            -Djib.to.image="${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY_BACKEND }}:${GITHUB_REF_NAME}" \
+            -Djib.to.tags=latest
+
+      - name: frontend イメージのビルド＆push（同一オリジンで API を呼ぶため NEXT_PUBLIC_API_URL は空）
+        working-directory: frontend
+        run: |
+          IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY_FRONTEND }}"
+          docker build --target production --build-arg NEXT_PUBLIC_API_URL= \
+            -t "$IMAGE:${GITHUB_REF_NAME}" -t "$IMAGE:latest" .
+          docker push --all-tags "$IMAGE"
+
+      - name: ECS へデプロイ（タスク定義の新リビジョン登録 → サービス更新 → 安定待ち）
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+        run: |
+          deploy() { # $1=タスク定義ファミリー $2=サービス $3=イメージ
+            aws ecs describe-task-definition --task-definition "$1" --query 'taskDefinition' > current.json
+            # 登録時に指定できない読み取り専用フィールドを除去し、イメージのみ差し替える
+            jq --arg IMAGE "$3" \
+              'del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                   .compatibilities, .registeredAt, .registeredBy)
+               | .containerDefinitions[0].image = $IMAGE' current.json > new.json
+            ARN=$(aws ecs register-task-definition --cli-input-json file://new.json \
+              --query 'taskDefinition.taskDefinitionArn' --output text)
+            aws ecs update-service --cluster "$CLUSTER" --service "$2" --task-definition "$ARN" \
+              --query 'service.{service: serviceName, taskDefinition: taskDefinition}' --output table
+          }
+          # DB マイグレーション（Flyway）は backend の起動時に走るため、backend を先に更新する
+          deploy "${{ vars.ECS_TASK_FAMILY_BACKEND }}" "${{ vars.ECS_SERVICE_BACKEND }}" \
+            "$REGISTRY/${{ vars.ECR_REPOSITORY_BACKEND }}:${GITHUB_REF_NAME}"
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "${{ vars.ECS_SERVICE_BACKEND }}"
+          deploy "${{ vars.ECS_TASK_FAMILY_FRONTEND }}" "${{ vars.ECS_SERVICE_FRONTEND }}" \
+            "$REGISTRY/${{ vars.ECR_REPOSITORY_FRONTEND }}:${GITHUB_REF_NAME}"
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "${{ vars.ECS_SERVICE_FRONTEND }}"

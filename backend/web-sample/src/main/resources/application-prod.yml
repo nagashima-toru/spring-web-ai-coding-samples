@@ -1,0 +1,11 @@
+# 本番用（ECS タスク定義で SPRING_PROFILES_ACTIVE=prod）。接続情報・署名鍵は Secrets Manager から環境変数で注入する
+server:
+  # ALB の X-Forwarded-* ヘッダを信頼する（Location ヘッダ等のスキーム・ホストを正しくするため）
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+logging:
+  structured:
+    # CloudWatch Logs で検索できるよう、標準出力を ECS 形式の JSON にする
+    format:
+      console: ecs

@@ -1,5 +1,8 @@
 import axios, { AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
+// API base URL. An empty string means same origin (production behind ALB), so use ?? rather than ||
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+
 // Token keys (must match useAuth.ts)
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -49,7 +52,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
   try {
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/auth/refresh`,
+      `${API_BASE_URL}/api/auth/refresh`,
       { refreshToken },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -69,7 +72,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
  * Axios instance with base configuration
  */
 export const AXIOS_INSTANCE = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
