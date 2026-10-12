@@ -1,0 +1,11 @@
+# 結合テスト用。DB 接続は Testcontainers（@ServiceConnection）が上書きする
+spring:
+  datasource:
+    url: jdbc:postgresql://unused
+    username: unused
+    password: unused
+
+app:
+  security:
+    jwt:
+      secret: test-secret-key-for-integration-tests-0123456789

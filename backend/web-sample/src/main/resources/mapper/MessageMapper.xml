@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.web.sample.message.infrastructure.MessageMapper">
+
+    <sql id="columns">id, code, content, created_at, updated_at</sql>
+
+    <select id="findPage" resultType="com.example.web.sample.message.domain.Message">
+        SELECT <include refid="columns"/>
+        FROM app.messages
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM app.messages
+    </select>
+
+    <select id="findById" resultType="com.example.web.sample.message.domain.Message">
+        SELECT <include refid="columns"/>
+        FROM app.messages
+        WHERE id = #{id}
+    </select>
+
+    <select id="existsByCode" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM app.messages WHERE code = #{code})
+    </select>
+
+    <!-- 採番した ID を RETURNING で受け取る（record は不変で keyProperty に書き戻せないため） -->
+    <select id="insert" resultType="long" flushCache="true">
+        INSERT INTO app.messages (code, content, created_at, updated_at)
+        VALUES (#{code}, #{content}, #{createdAt}, #{updatedAt})
+        RETURNING id
+    </select>
+
+    <update id="update">
+        UPDATE app.messages
+        SET code = #{code},
+            content = #{content},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM app.messages WHERE id = #{id}
+    </delete>
+</mapper>

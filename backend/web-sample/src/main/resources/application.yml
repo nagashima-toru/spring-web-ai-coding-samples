@@ -1,0 +1,42 @@
+# 共通設定。環境ごとの値は環境変数で注入する（機密情報を直書きしない）
+spring:
+  application:
+    name: web-sample
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  flyway:
+    # 業務テーブルは app スキーマに置く（SQL はスキーマ修飾必須）
+    schemas: app
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: true
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    # record をコンストラクタ引数名で組み立てる
+    arg-name-based-constructor-auto-mapping: true
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: web-sample
+      access-token-ttl: 1h
+      refresh-token-ttl: 7d
+    public-paths:
+      - /api/auth/login
+      - /api/auth/refresh
+      - /actuator/health
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
