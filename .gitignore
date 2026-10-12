@@ -1,0 +1,34 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+
+# ログ・一時ファイル
+*.log
+tmp/
+
+# ローカル環境設定（機密情報はコミット禁止）
+.env
+.env.local
+application-local-secret.yml
