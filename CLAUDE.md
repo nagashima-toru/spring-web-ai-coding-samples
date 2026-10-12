@@ -12,7 +12,9 @@ AI駆動開発（Claude Code）を前提とした Spring Boot + Next.js Web ア�
 | `backend/web-sample/` | サンプル業務（`auth` 認証・`message` CRUD）。API 定義は `src/main/resources/api/openapi.yaml`（SSoT） |
 | `frontend/src/core/` | フロント基盤（API クライアント（Orval 生成）・認証・i18n・共通 UI）。**全画面はここの部品を利用する** |
 | `frontend/src/features/messages/` | サンプル業務の画面部品・フック・入力検証 |
-| `docs/` | 設計ドキュメント（SSoT） |
+| `docs/architecture.md` | **方式設計書（SSoT）**。全設計・実装はこれに準拠する |
+| `docs/development-guide.md` | 開発手順（Skills を使った工程フロー・検証ループ・PR作成まで） |
+| `docs/coding-standards.md` | コーディング規約（Java・TypeScript） |
 | `docs/projects/{案件}/` | 案件別の要件定義書・設計書の格納先（Skills が生成） |
 | `.claude/skills/` | 工程別 Skills とハーネス Skills |
 | `config/` | 静的解析設定（Checkstyle / SpotBugs） |
@@ -38,6 +40,25 @@ pnpm generate:api                 # openapi.yaml から API クライアント�
 pnpm lint && pnpm format:check && pnpm type-check && pnpm test:coverage && pnpm build
 pnpm test:e2e                     # backend を local プロファイルで起動してから実行
 ```
+
+## Skills（開発工程）
+
+要件定義から順に、前工程の成果物が次工程の入力になる（詳細は docs/development-guide.md）。
+
+| Skill | 工程 | 出力 |
+|---|---|---|
+| `/requirements` | 要件定義 | `docs/projects/{案件}/requirements.md` |
+| `/basic-design` | 基本設計 | `docs/projects/{案件}/basic-design.md`（機能・画面・API・テーブル・権限） |
+| `/detail-design` | 詳細設計 | `docs/projects/{案件}/detail-design/{機能ID}.md` |
+| `/review-design` | 設計レビュー | 指摘一覧（チェックリスト準拠） |
+| `/implementation` | 実装 | openapi.yaml → backend → frontend（基盤部品を必ず利用） |
+| `/unit-test` | 単体テスト | backend `*Test.java`・frontend の単体/コンポーネントテスト |
+| `/integration-test` | 結合テスト | backend `*ApiIT.java`（MockMvc＋Testcontainers） |
+| `/review-code` | コードレビュー | 指摘一覧（チェックリスト準拠） |
+| `/e2e-test` | E2E テスト | `frontend/tests/e2e/*.spec.ts`・実施記録 |
+
+`/sdd-pipeline` は `basic-design`〜`e2e-test` と PR 作成までを一気通貫で実行する。確定済みの requirements.md がある案件に使う。
+詳細設計がレビュー済みの機能の `implementation`〜`e2e-test` はハーネス（`/plan`・`/run`）でも進められる（docs/development-guide.md §2.4）。
 
 ## 禁止事項
 
