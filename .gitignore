@@ -32,3 +32,4 @@ tmp/
 .env
 .env.local
 application-local-secret.yml
+.claude/worktrees/
