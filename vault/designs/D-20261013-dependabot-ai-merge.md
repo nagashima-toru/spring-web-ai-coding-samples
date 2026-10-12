@@ -15,7 +15,7 @@ Dependabot が作る依存更新 PR について、GitHub Actions 上の AI（cl
 | マージは GitHub の auto-merge（squash）で行う。必須チェック（`backend`・`frontend`・`e2e`）は main のブランチ保護で人が設定する | CI が通った時だけ GitHub がマージするので、チェック漏れでマージされない |
 | マージの可否は AI ではなくワークフローの決定的なステップが判定する（Dependabot の PR であること・更新種別が patch/minor・AI の判定が「影響なし」の3条件をすべて満たす時だけ auto-merge を有効化） | AI の出力だけでマージ権限を行使させない。条件をコードで確かめられるようにする |
 | ワークフローは `pull_request` で起動し、`pull_request_target` は使わない | `pull_request_target` で PR のコードを扱うと、書き込み権限とシークレットが外部コードに渡る危険がある |
-| `ANTHROPIC_API_KEY` は Actions secrets と Dependabot secrets の両方に登録する（人が設定する） | Dependabot が起動したワークフローからは Dependabot secrets しか読めない |
+| 認証は Claude の Pro プランの OAuth トークンを使う。`claude setup-token` で発行したトークンを `CLAUDE_CODE_OAUTH_TOKEN` として、Actions secrets と Dependabot secrets の両方に登録する（人が設定する）。API キー（`ANTHROPIC_API_KEY`）は使わない | 従量課金ではなく、契約中の Pro プランの利用枠で動かすため。Dependabot が起動したワークフローからは Dependabot secrets しか読めない |
 
 ## 依存関係
 - フェーズ1 → フェーズ2 → フェーズ3 の順に直列で進める
@@ -39,7 +39,8 @@ Dependabot が作った PR を契機に GitHub Actions で claude-code-action �
 
 ### 決定済み
 - AI 実行は `anthropics/claude-code-action` の v1 系をメジャーバージョンで固定して使う（`@v1`）。モデルは指定せず action の既定値を使う
-- API キーは `secrets.ANTHROPIC_API_KEY` から渡す。シークレットの登録は人が行うため、このフェーズでは登録手順を書かなくてよい（フェーズ2 で docs に書く）
+- 認証は claude-code-action の入力 `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}` で渡す。`anthropic_api_key` は使わない。シークレットの登録は人が行うため、このフェーズでは登録手順を書かなくてよい（フェーズ2 で docs に書く）
+- Pro プランの利用枠は人の対話利用と共有で、上限に達すると AI のステップが失敗する。その時は判定を `needs-human` として扱い（判定が取れない時の既定値）、auto-merge に進まないようにする
 - `permissions` はジョブに最小限で書く：`contents: read`・`pull-requests: write`・`issues: write`（ラベル付与用）。`contents: write` は付けない
 - AI の判定はワークフローの後続ステップで機械的に読める形で受け取る。claude-code-action の structured output（`claude_args` の `--json-schema`、出力 `structured_output`）を使い、スキーマは `{"verdict": "safe" | "needs-human", "summary": string}` とする。structured output が使えない場合は、AI にプロンプトで `$RUNNER_TEMP/verdict.json` へ同じ形の JSON を書かせ、後続ステップで `jq` で読む
 - AI に許可するツールは読み取り系（Read・Grep・Glob、`gh pr view`・`gh pr diff`）とコメント投稿に限る。ファイル編集・`git push`・`gh pr merge` は許可しない
@@ -63,7 +64,7 @@ Dependabot が作った PR を契機に GitHub Actions で claude-code-action �
 - ステップの `if` が、`github.event.pull_request.user.login == 'dependabot[bot]'`・更新種別が `version-update:semver-patch` または `version-update:semver-minor`・AI の判定が `safe` の3条件をすべて含む（`grep -n "semver-major" .github/workflows/dependabot-review.yml` で major を通す条件が無いことを確認）
 - マージ方法が squash の auto-merge（`gh pr merge --auto --squash`）である
 - auto-merge のステップのジョブだけに `contents: write` を付け、AI を実行するジョブには付けていない
-- `docs/development-guide.md` §3 に「依存更新 PR（Dependabot）」の節があり、自動マージの条件・major と CI 失敗時の扱い・人が行う設定（`ANTHROPIC_API_KEY` を Actions secrets と Dependabot secrets に登録、main のブランチ保護で必須チェック `backend`・`frontend`・`e2e` を設定、リポジトリ設定で auto-merge を許可）が書かれている
+- `docs/development-guide.md` §3 に「依存更新 PR（Dependabot）」の節があり、自動マージの条件・major と CI 失敗時の扱い・人が行う設定（ローカルで `claude setup-token` を実行して発行したトークンを `CLAUDE_CODE_OAUTH_TOKEN` として Actions secrets と Dependabot secrets に登録、main のブランチ保護で必須チェック `backend`・`frontend`・`e2e` を設定、リポジトリ設定で auto-merge を許可）が書かれている
 - ワークフローの YAML が構文として正しい（フェーズ1 と同じ確認コマンド）
 
 ### 決定済み
@@ -93,6 +94,7 @@ Dependabot の PR で CI（`.github/workflows/ci.yml`）が失敗した時に、
 
 ### 決定済み
 - `workflow_run` は main のワークフロー定義で動き、Actions secrets を読める（Dependabot secrets ではない）。PR のコードはチェックアウトしない
+- 認証はフェーズ1 と同じく `claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}` で渡す
 - 対象 PR 番号は `github.event.workflow_run.pull_requests[0].number` から取る。空の場合は head ブランチ名から `gh pr list --head` で引く
 - CI 失敗時は auto-merge が進まない（必須チェックが失敗するため）ので、auto-merge の解除は行わなくてよい
 - `docs/decisions.md` はまだ無いので新規作成する。1件1行で「決めたこと・なぜ」を書く。`docs/development-guide.md` にフェーズ2 で書いた内容と重複するものは、`docs/decisions.md` には書かずにそちらを参照させる
