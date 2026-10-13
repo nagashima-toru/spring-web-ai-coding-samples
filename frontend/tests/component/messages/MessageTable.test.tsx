@@ -193,7 +193,7 @@ describe('MessageTable', () => {
         wrapper: createWrapper(),
       });
 
-      expect(screen.getByText(/showing 1 to 3 of 3 results/i)).toBeInTheDocument();
+      expect(screen.getByText('全3件中 1〜3件を表示')).toBeInTheDocument();
     });
   });
 
@@ -522,7 +522,7 @@ describe('MessageTable', () => {
       expect(screen.queryByText('MSG011')).not.toBeInTheDocument();
 
       // 次のページに移動
-      const nextButton = screen.getByRole('button', { name: /next/i });
+      const nextButton = screen.getByRole('button', { name: /次へ/ });
       await user.click(nextButton);
 
       await waitFor(() => {

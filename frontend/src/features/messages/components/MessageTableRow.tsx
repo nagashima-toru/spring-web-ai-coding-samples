@@ -3,6 +3,7 @@
 import { TableCell, TableRow } from '@/core/components/ui/table';
 import { Button } from '@/core/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { MessageResponse } from '@/core/api/generated/models';
 import { RoleBasedComponent } from '@/core/auth/RoleBasedComponent';
 import { ROLES } from '@/core/auth/roles';
@@ -77,6 +78,7 @@ interface MessageCardProps {
 
 export function MessageCard({ message, onEdit, onDelete }: MessageCardProps) {
   const { canEdit } = usePermission();
+  const t = useTranslations('messages.table');
 
   const handleCardClick = (e: React.MouseEvent) => {
     // VIEWER ロールの場合のみ、カードクリックで読み取り専用モーダルを開く
@@ -98,11 +100,11 @@ export function MessageCard({ message, onEdit, onDelete }: MessageCardProps) {
       <div className="flex items-start justify-between">
         <div className="space-y-1 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">ID:</span>
+            <span className="text-xs text-muted-foreground">{t('id')}:</span>
             <span className="font-medium">{message.id}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Code:</span>
+            <span className="text-xs text-muted-foreground">{t('code')}:</span>
             <code className="bg-muted px-2 py-1 rounded text-sm">{message.code}</code>
           </div>
         </div>
@@ -132,7 +134,7 @@ export function MessageCard({ message, onEdit, onDelete }: MessageCardProps) {
         </div>
       </div>
       <div>
-        <span className="text-xs text-muted-foreground">Content:</span>
+        <span className="text-xs text-muted-foreground">{t('content')}:</span>
         <p className="mt-1 text-sm">{message.content}</p>
       </div>
     </div>
