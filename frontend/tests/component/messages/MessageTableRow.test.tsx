@@ -7,6 +7,9 @@ import { AuthContext } from '@/core/auth/AuthContext';
 import { ROLES } from '@/core/auth/roles';
 import type { UserResponse } from '@/core/api/generated/models';
 import type { ReactNode } from 'react';
+import { createLocaleWrapper } from '../../unit/helpers/localeTestHelper';
+
+const LocaleWrapper = createLocaleWrapper();
 
 // Mock useRouter and usePathname (required by AuthContext)
 vi.mock('next/navigation', () => ({
@@ -31,29 +34,33 @@ describe('MessageTableRow', () => {
   const viewerUser: UserResponse = { username: 'viewer', role: ROLES.VIEWER };
 
   const AdminWrapper = ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider
-      value={{
-        user: adminUser,
-        isLoading: false,
-        error: null,
-        refetch: () => {},
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <LocaleWrapper>
+      <AuthContext.Provider
+        value={{
+          user: adminUser,
+          isLoading: false,
+          error: null,
+          refetch: () => {},
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </LocaleWrapper>
   );
 
   const ViewerWrapper = ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider
-      value={{
-        user: viewerUser,
-        isLoading: false,
-        error: null,
-        refetch: () => {},
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <LocaleWrapper>
+      <AuthContext.Provider
+        value={{
+          user: viewerUser,
+          isLoading: false,
+          error: null,
+          refetch: () => {},
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </LocaleWrapper>
   );
 
   it('メッセージ情報が表示される', () => {
@@ -239,29 +246,33 @@ describe('MessageCard', () => {
   const viewerUser: UserResponse = { username: 'viewer', role: ROLES.VIEWER };
 
   const AdminWrapper = ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider
-      value={{
-        user: adminUser,
-        isLoading: false,
-        error: null,
-        refetch: () => {},
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <LocaleWrapper>
+      <AuthContext.Provider
+        value={{
+          user: adminUser,
+          isLoading: false,
+          error: null,
+          refetch: () => {},
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </LocaleWrapper>
   );
 
   const ViewerWrapper = ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider
-      value={{
-        user: viewerUser,
-        isLoading: false,
-        error: null,
-        refetch: () => {},
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <LocaleWrapper>
+      <AuthContext.Provider
+        value={{
+          user: viewerUser,
+          isLoading: false,
+          error: null,
+          refetch: () => {},
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </LocaleWrapper>
   );
 
   it('メッセージ情報が表示される', () => {
@@ -277,9 +288,9 @@ describe('MessageCard', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('MOBILE001')).toBeInTheDocument();
     expect(screen.getByText('Mobile view content')).toBeInTheDocument();
-    expect(screen.getByText(/ID:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Code:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Content:/i)).toBeInTheDocument();
+    expect(screen.getByText('ID:')).toBeInTheDocument();
+    expect(screen.getByText('コード:')).toBeInTheDocument();
+    expect(screen.getByText('コンテンツ:')).toBeInTheDocument();
   });
 
   it('ADMIN ロールの場合、編集ボタンクリックで onEdit が呼ばれる', async () => {

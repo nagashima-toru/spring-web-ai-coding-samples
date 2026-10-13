@@ -37,7 +37,7 @@
         <!-- 依存ライブラリ（Boot BOM 管理外のもの） -->
         <mybatis-spring-boot.version>4.1.0</mybatis-spring-boot.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <archunit.version>1.4.1</archunit.version>
+        <archunit.version>1.5.1</archunit.version>
 
         <!-- ビルドプラグイン -->
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
