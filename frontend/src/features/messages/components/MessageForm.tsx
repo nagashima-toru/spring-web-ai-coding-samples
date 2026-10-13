@@ -1,9 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { messageSchema, MessageFormData } from '@/features/messages/validations';
+import { createMessageSchema, MessageFormData } from '@/features/messages/validations';
 import { Button } from '@/core/components/ui/button';
 import {
   Form,
@@ -47,6 +48,8 @@ export function MessageForm({
 }: MessageFormProps) {
   const t = useTranslations('messages.form');
   const tRoot = useTranslations();
+  const tValidation = useTranslations('messages.validation');
+  const messageSchema = useMemo(() => createMessageSchema(tValidation), [tValidation]);
   const form = useForm<MessageFormData>({
     resolver: zodResolver(messageSchema),
     defaultValues: {

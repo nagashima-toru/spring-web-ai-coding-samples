@@ -69,9 +69,21 @@
       "serverError": "Server error. Please try again later.",
       "networkError": "Network error. Please check your connection and try again.",
       "unexpected": "An unexpected error occurred. Please try again."
+    },
+    "validation": {
+      "codeRequired": "Code is required",
+      "codeMaxLength": "Code must be {max} characters or less",
+      "contentRequired": "Content is required",
+      "contentMaxLength": "Content must be {max} characters or less"
     }
   },
   "common": {
     "loading": "Loading..."
+  },
+  "pagination": {
+    "summary": "Showing {start} to {end} of {total} results",
+    "perPage": "Per page:",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

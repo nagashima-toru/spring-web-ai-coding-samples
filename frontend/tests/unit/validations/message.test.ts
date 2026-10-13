@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { messageSchema } from '@/features/messages/validations';
+import { createMessageSchema, type ValidationTranslator } from '@/features/messages/validations';
+
+// 翻訳キーと埋め込み値をそのまま返すスタブ（キーの選択と値の受け渡しを検証する）
+const stubT: ValidationTranslator = (key, values) =>
+  values ? `${key}:${JSON.stringify(values)}` : key;
+const messageSchema = createMessageSchema(stubT);
 
 describe('messageSchema', () => {
   describe('正常系', () => {
@@ -58,7 +63,7 @@ describe('messageSchema', () => {
         const result = messageSchema.safeParse(invalidData);
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Code is required');
+          expect(result.error.issues[0].message).toBe('codeRequired');
         }
       });
 
@@ -71,7 +76,7 @@ describe('messageSchema', () => {
         const result = messageSchema.safeParse(invalidData);
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Code must be 50 characters or less');
+          expect(result.error.issues[0].message).toBe('codeMaxLength:{"max":50}');
         }
       });
 
@@ -108,7 +113,7 @@ describe('messageSchema', () => {
         const result = messageSchema.safeParse(invalidData);
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Content is required');
+          expect(result.error.issues[0].message).toBe('contentRequired');
         }
       });
 
@@ -121,7 +126,7 @@ describe('messageSchema', () => {
         const result = messageSchema.safeParse(invalidData);
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Content must be 500 characters or less');
+          expect(result.error.issues[0].message).toBe('contentMaxLength:{"max":500}');
         }
       });
 
