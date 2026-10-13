@@ -27,7 +27,7 @@ export function PageHeader({
         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
-      <div className="flex items-center gap-4">
+      <div data-testid="page-header-actions" className="flex flex-wrap items-center gap-2 sm:gap-4">
         {action && <div className="flex-shrink-0">{action}</div>}
         {rightContent && <div className="flex-shrink-0">{rightContent}</div>}
       </div>

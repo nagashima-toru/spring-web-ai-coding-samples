@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { login } from './helpers';
+import { login, openCreateModal } from './helpers';
 
 // Helper: clear locale from localStorage and navigate to login page
 async function clearLocale(page: Page) {
@@ -70,5 +70,27 @@ test.describe('言語切り替え機能', () => {
     // Login page should still be in English
     await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId('language-switcher')).toHaveText('🌐 English'); // Shows "🌐 English" when in English mode
+  });
+
+  test('ページングと入力エラーが選択言語で表示される', async ({ page }) => {
+    await login(page);
+    await page.waitForLoadState('networkidle');
+
+    // Japanese (default)
+    await expect(page.getByTestId('pagination-info')).toHaveText(/^全\d+件中 \d+〜\d+件を表示$/);
+    await expect(page.getByLabel('表示件数:')).toBeVisible();
+
+    await openCreateModal(page);
+    await page.getByTestId('message-form-submit').click();
+    await expect(page.getByText('コードは必須です')).toBeVisible();
+    await expect(page.getByText('コンテンツは必須です')).toBeVisible();
+    await page.getByTestId('message-form-cancel').click();
+
+    // English
+    await switchToEnglish(page);
+    await expect(page.getByTestId('pagination-info')).toHaveText(
+      /^Showing \d+ to \d+ of \d+ results$/
+    );
+    await expect(page.getByLabel('Per page:')).toBeVisible();
   });
 });

@@ -110,7 +110,7 @@ describe('MessageForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/code is required/i)).toBeInTheDocument();
+        expect(screen.getByText('コードは必須です')).toBeInTheDocument();
       });
 
       expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe('MessageForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/content is required/i)).toBeInTheDocument();
+        expect(screen.getByText('コンテンツは必須です')).toBeInTheDocument();
       });
 
       expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -144,7 +144,7 @@ describe('MessageForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/code must be 50 characters or less/i)).toBeInTheDocument();
+        expect(screen.getByText('コードは50文字以内で入力してください')).toBeInTheDocument();
       });
 
       expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('MessageForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/content must be 500 characters or less/i)).toBeInTheDocument();
+        expect(screen.getByText('コンテンツは500文字以内で入力してください')).toBeInTheDocument();
       });
 
       expect(mockOnSubmit).not.toHaveBeenCalled();
@@ -178,8 +178,8 @@ describe('MessageForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/code is required/i)).toBeInTheDocument();
-        expect(screen.getByText(/content is required/i)).toBeInTheDocument();
+        expect(screen.getByText('コードは必須です')).toBeInTheDocument();
+        expect(screen.getByText('コンテンツは必須です')).toBeInTheDocument();
       });
 
       expect(mockOnSubmit).not.toHaveBeenCalled();

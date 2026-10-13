@@ -78,4 +78,16 @@ describe('PageHeader', () => {
     expect(screen.getByRole('button', { name: 'Action 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Action 2' })).toBeInTheDocument();
   });
+
+  it('狭い画面幅でもはみ出さないよう、ボタン群が折り返し可能になっている', () => {
+    render(
+      <PageHeader
+        title="Test Title"
+        action={<button>Action</button>}
+        rightContent={<button>Logout</button>}
+      />
+    );
+
+    expect(screen.getByTestId('page-header-actions')).toHaveClass('flex-wrap');
+  });
 });

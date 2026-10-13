@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/core/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
+  const t = useTranslations('pagination');
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
@@ -65,12 +67,12 @@ export function Pagination({
     >
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span data-testid="pagination-info">
-          Showing {startItem} to {endItem} of {totalItems} results
+          {t('summary', { start: startItem, end: endItem, total: totalItems })}
         </span>
         <span className="hidden sm:inline">|</span>
         <div className="flex items-center gap-2">
           <label htmlFor="pageSize" className="whitespace-nowrap">
-            Per page:
+            {t('perPage')}
           </label>
           <select
             id="pageSize"
@@ -95,7 +97,7 @@ export function Pagination({
           data-testid="pagination-prev-button"
         >
           <ChevronLeft className="h-4 w-4" />
-          <span className="hidden sm:inline ml-1">Previous</span>
+          <span className="hidden sm:inline ml-1">{t('previous')}</span>
         </Button>
 
         <div className="flex gap-1">
@@ -126,7 +128,7 @@ export function Pagination({
           disabled={currentPage === totalPages}
           data-testid="pagination-next-button"
         >
-          <span className="hidden sm:inline mr-1">Next</span>
+          <span className="hidden sm:inline mr-1">{t('next')}</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
