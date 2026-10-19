@@ -1,0 +1,118 @@
+# Dependabot の PR を AI で影響確認し、判定ラベルとコメントを付ける（マージはしない）
+name: Dependabot 影響確認
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  review:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Dependabot メタデータ取得
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ github.token }}
+
+      - name: AI による影響確認
+        id: claude
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          allowed_bots: 'dependabot[bot]'
+          prompt: |
+            あなたは依存ライブラリ更新の影響を確認するレビュアーです。
+            Dependabot の PR について、更新がこのリポジトリに与える影響を調べてください。
+
+            - PR 番号: ${{ github.event.pull_request.number }}
+            - 更新種別: ${{ steps.metadata.outputs.update-type }}
+            - エコシステム: ${{ steps.metadata.outputs.package-ecosystem }}
+            - 依存名: ${{ steps.metadata.outputs.dependency-names }}
+            - 更新前バージョン: ${{ steps.metadata.outputs.previous-version }}
+            - 更新後バージョン: ${{ steps.metadata.outputs.new-version }}
+
+            手順:
+            1. `gh pr view ${{ github.event.pull_request.number }}` で PR 本文（Dependabot が書いたリリースノート・変更履歴）を読む。
+            2. `gh pr diff ${{ github.event.pull_request.number }}` で変更内容を読む。
+            3. Grep・Glob・Read で、このリポジトリ内の該当依存の使用箇所を探す。
+
+            判定:
+            - 破壊的変更の可能性がある、または使用箇所への影響が判断できない場合は verdict を `needs-human` にする。
+            - 破壊的変更が無く、使用箇所にも影響しないと確認できた場合だけ `safe` にする。
+
+            summary は PR コメントにそのまま載せるので、日本語で書くこと。
+            summary には次の3点を必ず含める: 「使用箇所」「破壊的変更の有無」「リリースノートの要点」。
+          claude_args: |
+            --allowedTools "Read,Grep,Glob,Bash(gh pr view:*),Bash(gh pr diff:*)"
+            --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["safe","needs-human"]},"summary":{"type":"string"}},"required":["verdict","summary"]}'
+
+      - name: ラベルの決定
+        id: decide
+        if: always()
+        env:
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          VERDICT: ${{ fromJSON(steps.claude.outputs.structured_output || '{}').verdict }}
+        run: |
+          label="ai-review:needs-human"
+          if [ "$VERDICT" = "safe" ] && [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
+            label="ai-review:safe"
+          fi
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+
+      - name: ラベル付与とコメント投稿
+        id: label
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          LABEL: ${{ steps.decide.outputs.label }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+          SUMMARY: ${{ fromJSON(steps.claude.outputs.structured_output || '{}').summary }}
+        run: |
+          gh label create ai-review:safe --force --color 0E8A16 --description "AI の影響確認で問題なし"
+          gh label create ai-review:needs-human --force --color D93F0B --description "AI の影響確認で人の確認が必要"
+
+          gh pr edit "$PR_NUMBER" --remove-label "ai-review:safe" || true
+          gh pr edit "$PR_NUMBER" --remove-label "ai-review:needs-human" || true
+          gh pr edit "$PR_NUMBER" --add-label "$LABEL"
+
+          body_file="$RUNNER_TEMP/comment.md"
+          {
+            echo "## AI による依存更新の影響確認"
+            echo
+            echo "- 判定ラベル: \`$LABEL\`"
+            echo "- 更新種別: $UPDATE_TYPE"
+            echo "- 依存名: $DEPENDENCY_NAMES"
+            echo
+            if [ "$UPDATE_TYPE" = "version-update:semver-major" ]; then
+              echo "major の更新は AI の判定に関係なく人が確認する。"
+              echo
+            fi
+            if [ -n "$SUMMARY" ]; then
+              printf '%s\n' "$SUMMARY"
+            else
+              echo "AI の判定を取得できなかった（利用枠の上限などで AI のステップが失敗した可能性がある）。needs-human として扱う。"
+            fi
+            echo
+            echo "このワークフローはマージを行わない。"
+          } > "$body_file"
+          gh pr comment "$PR_NUMBER" --body-file "$body_file"
