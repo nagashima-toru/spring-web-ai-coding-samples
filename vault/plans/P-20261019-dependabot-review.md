@@ -1,6 +1,6 @@
 ---
 id: P-20261019-dependabot-review
-status: approved
+status: done
 ---
 # ゴール
 Dependabot が作った PR を契機に GitHub Actions で claude-code-action を起動し、更新内容（更新種別・リリースノート・変更履歴・リポジトリ内での使用箇所）から影響を確認して結果を PR にコメントし、判定に応じたラベルを付けるワークフロー `.github/workflows/dependabot-review.yml` を追加する。このフェーズではマージは行わない。
