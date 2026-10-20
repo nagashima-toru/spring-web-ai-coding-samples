@@ -15,7 +15,7 @@ status: approved
 | id | status | attempt | after | title | question |
 |---|---|---|---|---|---|
 | T-01 | done | 1 | - | dependabot-review.yml に patch/minor かつ safe の時だけ auto-merge を有効化するジョブを追加する | |
-| T-02 | doing | 1 | T-01 | development-guide.md §3 に依存更新 PR（Dependabot）の節を追記する | |
+| T-02 | review | 1 | T-01 | development-guide.md §3 に依存更新 PR（Dependabot）の節を追記する | |
 
 ## 計画の受け入れ基準
 - 各タスクに成果物と受け入れ基準が1つずつある
