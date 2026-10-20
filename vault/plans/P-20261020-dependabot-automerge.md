@@ -1,6 +1,6 @@
 ---
 id: P-20261020-dependabot-automerge
-status: approved
+status: done
 ---
 # ゴール
 設計文書 `vault/designs/D-20261013-dependabot-ai-merge.md` のフェーズ2「patch/minor の auto-merge 有効化と運用ドキュメント」を実装する。フェーズ1 の `.github/workflows/dependabot-review.yml` に、Dependabot の PR であること・更新種別が patch または minor・AI の判定が safe の3条件をすべて満たす時だけ `gh pr merge --auto --squash` で auto-merge を有効化するジョブを追加する。あわせて、依存更新 PR の扱い（AI による確認と自動マージの条件、人が行う設定：シークレット登録・ブランチ保護・auto-merge の許可）を `docs/development-guide.md` に追記する。
