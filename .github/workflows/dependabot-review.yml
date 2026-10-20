@@ -1,4 +1,4 @@
-# Dependabot の PR を AI で影響確認し、判定ラベルとコメントを付ける（マージはしない）
+# Dependabot の PR を AI で影響確認して判定ラベルとコメントを付け、patch・minor かつ AI の判定が safe の時だけ auto-merge を有効化する
 name: Dependabot 影響確認
 
 on:
@@ -16,6 +16,9 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+    outputs:
+      update-type: ${{ steps.metadata.outputs.update-type }}
+      verdict: ${{ steps.decide.outputs.verdict }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
@@ -75,7 +78,12 @@ jobs:
           if [ "$VERDICT" = "safe" ] && [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
             label="ai-review:safe"
           fi
+          verdict="needs-human"
+          if [ "$VERDICT" = "safe" ]; then
+            verdict="safe"
+          fi
           echo "label=$label" >> "$GITHUB_OUTPUT"
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
 
       - name: ラベル付与とコメント投稿
         id: label
@@ -113,6 +121,22 @@ jobs:
               echo "AI の判定を取得できなかった（利用枠の上限などで AI のステップが失敗した可能性がある）。needs-human として扱う。"
             fi
             echo
-            echo "このワークフローはマージを行わない。"
+            echo "Dependabot の patch・minor の更新で AI の判定が safe の時だけ auto-merge を有効化する。必須チェックが通った時点で GitHub がマージする。"
           } > "$body_file"
           gh pr comment "$PR_NUMBER" --body-file "$body_file"
+
+  automerge:
+    needs: review
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && (needs.review.outputs.update-type == 'version-update:semver-patch' || needs.review.outputs.update-type == 'version-update:semver-minor') && needs.review.outputs.verdict == 'safe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: auto-merge の有効化
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR_NUMBER" --auto --squash
