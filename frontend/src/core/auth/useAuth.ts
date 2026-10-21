@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLogin, useLogout, useRefreshToken } from '@/core/api/generated/auth/auth';
 import type { LoginRequest, LoginResponse } from '@/core/api/generated/models';
@@ -24,31 +24,53 @@ interface UseAuthReturn extends AuthState {
   getAccessToken: () => string | null;
 }
 
+// localStorage のトークンを外部ストアとして購読する（effect 内で setState せずに初期状態を読むため）
+const tokenListeners = new Set<() => void>();
+
+const subscribeTokens = (listener: () => void) => {
+  tokenListeners.add(listener);
+  return () => {
+    tokenListeners.delete(listener);
+  };
+};
+
+const notifyTokenChange = () => {
+  tokenListeners.forEach((listener) => listener());
+};
+
+const getStoredAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
+const getStoredRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
+const getServerToken = () => null;
+
+// ハイドレーション完了前は true を返し、サーバー描画と初回描画を一致させる
+const subscribeNever = () => () => {};
+const getHydrated = () => true;
+const getServerHydrated = () => false;
+
 export const useAuth = (): UseAuthReturn => {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    isLoading: true,
-    accessToken: null,
-    refreshToken: null,
-  });
+  const storedAccessToken = useSyncExternalStore(
+    subscribeTokens,
+    getStoredAccessToken,
+    getServerToken
+  );
+  const storedRefreshToken = useSyncExternalStore(
+    subscribeTokens,
+    getStoredRefreshToken,
+    getServerToken
+  );
+  const hydrated = useSyncExternalStore(subscribeNever, getHydrated, getServerHydrated);
+
+  const authState: AuthState = {
+    isAuthenticated: !!storedAccessToken,
+    isLoading: !hydrated,
+    accessToken: storedAccessToken,
+    refreshToken: storedRefreshToken,
+  };
 
   const queryClient = useQueryClient();
   const loginMutation = useLogin();
   const logoutMutation = useLogout();
   const refreshMutation = useRefreshToken();
-
-  // Initialize auth state from localStorage on mount
-  useEffect(() => {
-    const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-
-    setAuthState({
-      isAuthenticated: !!accessToken,
-      isLoading: false,
-      accessToken,
-      refreshToken,
-    });
-  }, []);
 
   const saveTokens = useCallback((response: LoginResponse) => {
     const { accessToken, refreshToken, tokenType, expiresIn } = response;
@@ -58,12 +80,7 @@ export const useAuth = (): UseAuthReturn => {
     localStorage.setItem(TOKEN_TYPE_KEY, tokenType);
     localStorage.setItem(EXPIRES_IN_KEY, expiresIn.toString());
 
-    setAuthState({
-      isAuthenticated: true,
-      isLoading: false,
-      accessToken,
-      refreshToken,
-    });
+    notifyTokenChange();
   }, []);
 
   const clearTokens = useCallback(() => {
@@ -72,12 +89,7 @@ export const useAuth = (): UseAuthReturn => {
     localStorage.removeItem(TOKEN_TYPE_KEY);
     localStorage.removeItem(EXPIRES_IN_KEY);
 
-    setAuthState({
-      isAuthenticated: false,
-      isLoading: false,
-      accessToken: null,
-      refreshToken: null,
-    });
+    notifyTokenChange();
   }, []);
 
   const login = useCallback(
