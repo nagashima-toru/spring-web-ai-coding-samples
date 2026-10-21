@@ -19,11 +19,16 @@ test.describe('Authenticated Operations', () => {
     // Wait for redirect to login page
     await page.waitForURL('/login', { timeout: 10000 });
 
-    // Try to navigate back to protected page
-    await page.goto('/');
+    // Try to navigate back to protected page.
+    // After logout, a late 401 on the previous page can start another navigation to /login
+    // and interrupt this goto, so retry until the navigation to / commits. Waiting only for
+    // "commit" keeps the app's own redirect to /login from aborting the goto.
+    await expect(async () => {
+      await page.goto('/', { waitUntil: 'commit' });
+    }).toPass({ timeout: 10000 });
 
-    // Should be redirected back to login
-    await page.waitForURL('/login', { timeout: 10000 });
+    // Should be redirected back to login (toHaveURL polls, so the redirect may interrupt navigation)
+    await expect(page).toHaveURL(/\/login$/, { timeout: 10000 });
     await expect(page.getByRole('heading', { name: /ログイン/i })).toBeVisible();
   });
 });
