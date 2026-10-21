@@ -21,7 +21,7 @@ log の日時は transition.py が実時刻で書くので、run は書かない
 | unblock 後の再着手（手順2。todo→doing。1 id ずつ） | `python3 scripts/transition.py <計画ID> <id> doing --resume-worktree` |
 | creator の blocked の報告・分岐元の不一致（手順3。doing→blocked） | `python3 scripts/transition.py <計画ID> <id> blocked --question-file <質問ファイル> --worktree <worktree> --branch <branch> --plan-head <PLAN_HEAD>` |
 | review にする（手順4。収集コミット・新規コミットの判定・差分ゲート・再開情報の記録行を含む） | `python3 scripts/transition.py <計画ID> <id> review --worktree <worktree> --branch <branch> --plan-head <PLAN_HEAD>` |
-| PASS（手順6。マージ・done・後始末） | `python3 scripts/transition.py <計画ID> <id> done --worktree <worktree> --branch <branch> --plan-head <PLAN_HEAD>` |
+| PASS（手順6。マージ・done・後始末。同じ組の他タスクが先に done なら再検証（終了コード6）） | `python3 scripts/transition.py <計画ID> <id> done --worktree <worktree> --branch <branch> --plan-head <PLAN_HEAD>` |
 | FAIL（手順6。再試行、上限なら blocked） | `python3 scripts/transition.py <計画ID> <id> doing --worktree <worktree> --branch <branch>` |
 | verifier が人の判断を求めた PASS（手順6。review→blocked。計画単位のレビュータスクで起きうる） | `python3 scripts/transition.py <計画ID> <id> blocked --question-file <質問ファイル> --note "人の判断が必要"` |
 | 中断からの再開・ハング・呼び出しエラー・worktree が無い時の再試行（doing→doing・review→doing） | `python3 scripts/transition.py <計画ID> <id> doing --no-model --note "<補足>"` |
@@ -40,6 +40,7 @@ log の日時は transition.py が実時刻で書くので、run は書かない
 | 3 | 差し戻した（creator を呼び直す）。標準出力の1行を完了報告に写し、手順3の1から `PLAN_HEAD` を取り直してその id の creator を呼び直す |
 | 4 | blocked にした。標準出力の1行を完了報告に写し、その id を終えて次の対象タスクへ進む（worktree は残っている） |
 | 5 | 引き継げなかった。何も変えていない。その id を通常の着手（複数 id の todo→doing）に回す。記録行の worktree が残っていれば破棄せず、完了報告に `git worktree list` の出力を添えて人に知らせる |
+| 6 | 再検証のため計画ブランチを worktree に取り込んだ。done にしていない（review のまま。verdict は transition.py が消した）。手順6の3の6のとおり verifier を呼び直す |
 
 ## 1. 計画票を見つける
 1. `bash scripts/current_plan.sh` を実行する（frontmatter の `status` が `approved` の計画票の計画 ID を1行1件で出力する）
@@ -68,14 +69,16 @@ log の日時は transition.py が実時刻で書くので、run は書かない
 
 ## 3. 作る
 1. 手順2で選んだタスク全部について、`git rev-parse HEAD`（このブランチ＝計画ブランチの現在の HEAD）を1回だけ控える（以下 `PLAN_HEAD`）。手順2の一括反映（doing への更新・ログ追記）が済んだ直後の値を使う。ただし手順2で引き継いだ id の `PLAN_HEAD` は、この HEAD ではなく `--resume-worktree` の標準出力の `plan_head`（transition.py が worktree に取り込んだ計画ブランチの HEAD。worktree の内容と一致する）を使う（review・blocked・done の `--plan-head` に渡す）。あわせて `echo "${HARNESS_CREATOR_MODEL:-}"` を1回だけ実行し、出力（以下 `CREATOR_MODEL`）を控える。値の検査はしない
-2. 選んだタスクそれぞれについて、Agent ツールで `creator` サブエージェントを呼ぶ。`CREATOR_MODEL` が空でなければ、その値を Agent ツールの `model` に渡す。空なら `model` を指定しない（`.claude/agents/creator.md` の frontmatter の値になる）。Agent ツールがその値を受け付けずに呼び出しがエラーで返った時は、transition.py を呼ばず、エラーの内容と `HARNESS_CREATOR_MODEL` の値を人に報告してそのタスクの処理を止める（状態は変えない。doing のまま残り、次の `/run` の手順2.2で扱われる）。渡すのは creator の呼び出しだけで、手順5の verifier の呼び出しには渡さない。呼び出しには `isolation: "worktree"` オプションを付ける（計画ブランチ＝現在のブランチから分岐した隔離 worktree 上で creator を作業させる）。prompt は既存どおりタスク ID だけ（例：`<計画ID>/<id> の成果物を作ってください`）。手順2で引き継いだ id の creator は `isolation: "worktree"` を付けずに呼び、prompt を `<計画ID>/<id> の成果物を作ってください。作業する worktree: <パス>` にする（この文字どおり。`<パス>` は控えた path）。`CREATOR_MODEL` の扱い・`run_in_background` の指定は通常の呼び出しと同じ。作業の経緯・言い訳は渡さない。タスク票の読み込み・ルール読み込み・成果物作成・確認コマンドの実行・「進捗」への追記は creator が行う（creator は計画票のタスク表と `vault/log/<計画ID>.md` には書き込まない）。この呼び出しは `run_in_background: false` を指定する。指定しても、creator の呼び出しは起動通知で返るのが普通である。
+2. 選んだタスクそれぞれについて、まず worktree を用意し、Agent ツールで `creator` サブエージェントを呼ぶ。手順2で引き継がなかった id ごとに、creator を呼ぶ前に `bash scripts/add_worktree.sh <PLAN_HEAD>` を1回ずつ（1回の Bash 呼び出しに1回）実行し、標準出力の `path=`・`branch=` を控える。終了コードが0でなければ、その id の creator は呼ばず、標準エラーの内容を人に報告してその id の処理を止める（状態は変えない。doing のまま残り、次の `/run` の手順2の2で扱われる）。`CREATOR_MODEL` が空でなければ、その値を Agent ツールの `model` に渡す。空なら `model` を指定しない（`.claude/agents/creator.md` の frontmatter の値になる）。Agent ツールがその値を受け付けずに呼び出しがエラーで返った時は、transition.py を呼ばず、エラーの内容と `HARNESS_CREATOR_MODEL` の値を人に報告してそのタスクの処理を止める（状態は変えない。doing のまま残り、次の `/run` の手順2.2で扱われる）。渡すのは creator の呼び出しだけで、手順5の verifier の呼び出しには渡さない。creator はすべての id で `isolation` を付けずに呼び、prompt を `<計画ID>/<id> の成果物を作ってください。作業する worktree: <パス>` にする（この文字どおり。`<パス>` は add_worktree.sh の `path=`、手順2で引き継いだ id は `--resume-worktree` の `path=`）。`CREATOR_MODEL` の扱い・`run_in_background` の指定は通常の呼び出しと同じ。作業の経緯・言い訳は渡さない。タスク票の読み込み・ルール読み込み・成果物作成・確認コマンドの実行・「進捗」への追記は creator が行う（creator は計画票のタスク表と `vault/log/<計画ID>.md` には書き込まない）。この呼び出しは `run_in_background: false` を指定する。指定しても、creator の呼び出しは起動通知で返るのが普通である。
    - Agent ツールの結果が起動通知（バックグラウンド起動）だった時は、そのタスクを結果待ちとして扱い、ターンを終えて完了通知を待つ。完了通知が来るまで手順4に進まない。完了報告がそのまま返った時（同期で返った時）は手順4へ進む。待っている間の停止で stop_gate が「待機中なら問題ありません」の理由でブロックしても、そのままターンを終えて待ってよい。起動通知かどうかは、結果に「Async agent launched」「バックグラウンド」等の起動を表す文言があり、creator の完了報告（「blocked: ...」や完了の要約）が無いことで見分け、文言の完全一致には頼らない。複数タスクを1メッセージで呼んで一部だけ起動通知で返った時は、起動通知で返ったタスクの完了通知がすべて来るまでそのタスクについて手順4に進まない（同期で返ったタスクは従来どおり進めてよい）
 3. 選んだタスクが複数件の場合、上記の呼び出しをタスクの数だけ**1メッセージの中で**行う（Agent ツールを複数回呼び、並行に実行させる）。選んだタスクが1件だけの場合も同じ経路を通し、呼び出しが1回になるだけとする（専用の逐次フォールバックは作らない）
-4. 各呼び出しの完了時に返る worktree のパス・ブランチ名（引き継いだ id は `--resume-worktree` の標準出力の値）を、タスク ID に紐づけて run のセッション内で保持する。この対応は後続の review・verifier 呼び出しと、マージ処理で使う。再開に使う記録行は、手順3の8・手順4の呼び出しで transition.py が log に書く
+4. 手順3の2で控えた worktree のパス・ブランチ名（add_worktree.sh の標準出力の `path=`・`branch=`。引き継いだ id は `--resume-worktree` の標準出力の値）を、タスク ID に紐づけて run のセッション内で保持する。この対応は後続の review・verifier 呼び出しと、マージ処理で使う。再開に使う記録行は、手順3の8・手順4の呼び出しで transition.py が log に書く
 5. 各 worktree について、分岐元がこの計画ブランチ（`PLAN_HEAD`）になっていることを次のコマンドで確認する：
    `git -C <worktree のパス> merge-base --is-ancestor <PLAN_HEAD> HEAD`
    終了コードが `0` なら、その worktree は計画ブランチ（`PLAN_HEAD`）から分岐している。`git worktree list` でパスとブランチ名の対応も確認できる
-6. worktree の分岐元は `.claude/settings.json` の `worktree.baseRef: "head"` 設定により計画ブランチ（`PLAN_HEAD`）になる想定。直前の5.の確認で終了コードが非0（＝計画ブランチではなく `origin/main` 等から分岐してしまっている）場合、自己判断で起点を上書きして creator 呼び出しをやり直すことはしない。代わりに、質問文（「worktree の分岐元が計画ブランチと一致しない」と、手順5の確認コマンドの出力の要点）を Write ツールで一時ファイルに書き、手順3の8と同じ呼び出しで対象タスクを blocked にして人の判断を仰ぐ（`.claude/agents/creator.md` の「受け渡し」節と同じ blocked 運用）
+6. worktree は add_worktree.sh が計画ブランチ（`PLAN_HEAD`）から作る。直前の5.の確認で終了コードが非0（＝計画ブランチではなく `origin/main` 等から分岐してしまっている）場合、自己判断で起点を上書きして creator 呼び出しをやり直すことはしない。代わりに、質問文（「worktree の分岐元が計画ブランチと一致しない」と、手順5の確認コマンドの出力の要点）を Write ツールで一時ファイルに書き、手順3の8と同じ呼び出しで対象タスクを blocked にして人の判断を仰ぐ（`.claude/agents/creator.md` の「受け渡し」節と同じ blocked 運用）
+   - 既知の原因：Agent ツールの `isolation: "worktree"` で creator の worktree を作らせていた頃、`worktree.baseRef` が `head` のままでも、セッションの途中で primary working directory が一時的に変わった後に worktree が計画ブランチではなく main（push 先ブランチの tip）から切られ、worktree に計画票・タスク票が無い状態になった（Issue #209。原因は未確定）
+   - 回避策：その id の blocked を `/plan unblock <計画ID> <id> --fresh` で解除し、セッションを作り直して `/run` で再開する
 7. 各 creator の完了報告を受け取る。報告が「blocked: <質問文>」の形式のものと、そうでないものをタスクごとに分けて記録する
 8. 報告が「blocked: <質問文>」のタスクについて、質問文を言い換えずに Write ツールで一時ファイル（例：`/tmp/<計画ID>-<id>-question.txt`）に書き、`python3 scripts/transition.py <計画ID> <id> blocked --question-file <質問ファイル> --worktree <worktree> --branch <branch> --plan-head <PLAN_HEAD>` を id ごとに1回呼ぶ。worktree は transition.py が残す。終了コードは4（blocked にした）が正常。選んだタスクの中に blocked 以外が無ければここで終わる
 
@@ -126,7 +129,7 @@ blocked ではない完了報告を受けたタスクについて、id ごとに
 
    そのうえで、新しい Agent 呼び出し（ほかのタスクの creator・verifier を含む）はしない。既に完了報告を受けたほかのタスクは手順4〜6を手順どおり進めてよい。そのうえで、エラーの内容と対象のタスク ID を人に報告して止まり、「レート制限のリセット後に `/run` を実行すれば、手順2.2（doing は中断から再開、review は記録行から worktree を復元して verifier を呼び直す）で再開できる」と案内する。止まる時に stop_gate が「待機中なら問題ありません」の理由でブロックしても、そのままターンを終えてよい。
 2. **それ以外のエラー**：「ハング時の復旧」の1・2と同じく回数を数える。エラーによる再試行の回数は log に残し、再開しても0に戻らない（メモリ上のカウンタにしない）。
-   - creator（手順3）：worktree のパスとブランチ名が返っていれば `bash scripts/discard_worktree.sh <worktree のパス> <ブランチ名>` で破棄する。attempt が上限（`HARNESS_MAX_ATTEMPTS`、既定3）未満なら次を呼んで手順3から creator を呼び直す。
+   - creator（手順3）：手順3の2で add_worktree.sh の出力から控えた worktree のパスとブランチ名があれば `bash scripts/discard_worktree.sh <worktree のパス> <ブランチ名>` で破棄する。attempt が上限（`HARNESS_MAX_ATTEMPTS`、既定3）未満なら次を呼んで手順3から creator を呼び直す。
      - `python3 scripts/transition.py <計画ID> <id> doing --no-model --note "creator呼び出しエラーにより再試行"`
 
      上限に達していれば、質問文（「creator 呼び出しがエラーで返った」とエラーの内容）を Write ツールで一時ファイルに書き、次を呼ぶ。
@@ -152,6 +155,7 @@ blocked ではない完了報告を受けたタスクについて、id ごとに
    終了コードごとの次の行動：
    - 0：done になった。次の対象タスクへ進む
    - 4：blocked にした（新規コミット無し・宣言外の変更・マージコンフリクトのいずれか。コンフリクトはマージを中止済み）。標準出力の1行を完了報告に写す。worktree は残っている。他の対象タスクの処理は止めず次へ進む
+   - 6：再検証のため計画ブランチを worktree に取り込んだ。done にしていない（status は review のまま、verdict は transition.py が消した）。同じ組の他タスクが先に done になっていて、verifier がその変更を含まない worktree で判定していたため。標準出力の1行を完了報告に写し、標準出力の `plan_head=` の値をその id の `PLAN_HEAD` にする。次のタスクへ進む前に、その id の verifier を手順5と同じ呼び出しで1回呼び直し、完了を待ってから、その id について手順6の1から処理し直す（PASS なら新しい `PLAN_HEAD` で done を呼ぶ。FAIL なら手順6の4）。次のタスクへ進む前に呼び直す理由：先に他のタスクを done にすると、そのマージで再検証がもう1回要るため（手順6は逐次なので、すぐ呼び直せば再検証は1タスクにつき1回で済む）。呼び直しの途中で中断した時は、その id は review の行として手順2の2で扱われる（最後の記録行の `plan_head` が取り込み後の値で、verdict が無いので手順5の verifier から再開する）
    - 1：何もしていない（PASS の verdict が無い・attempt 不一致など）か、マージ済みだが状態のコミットに失敗した。標準エラーの理由を添えて人に報告し、処理を止める
 4. `FAIL` の場合：計画ブランチへはマージしない。次を1回呼ぶ。
    `python3 scripts/transition.py <計画ID> <id> doing --worktree <worktree> --branch <branch>`
@@ -181,7 +185,8 @@ blocked ではない完了報告を受けたタスクについて、id ごとに
      - 取り出しで docs を編集した時は、そのファイルを名前で `git add` する（1回の Bash。`git add -A`・`git add .` は使わない）
      - `git commit -m "<計画ID>: 計画一式を除去"` を実行する（パスを指定しない。`purge_plan.sh` が stage した削除と、名前で add した docs だけをコミットする）
   7. `env HARNESS_PR_BODY_FILE=<本文ファイル> HARNESS_PR_TITLE="<計画ID>: <ゴールの1行目>" bash scripts/vcs_finish.sh` を実行する（`env` で始めるのは許可リストの `Bash(env *)` で通すため）。環境変数に無く、実行環境の指示で push 先が決められている時（クラウドセッションなど）は、`env HARNESS_PUSH_BRANCH=<指定ブランチ> HARNESS_PR_BODY_FILE=… bash scripts/vcs_finish.sh` のように値を渡す。ゴールの1行目は `plan_record.py` の出力の `### ゴール` の最初の行から取る（除去の後は計画票が無いため）。GitHub は `gh api`（REST）で PR を作り、作った PR の URL が標準出力に出る。終了コード0で完了すれば（GitHub/GitLab で PR/MR が作られた場合も、ホスティング無し（`none`）で案内メッセージのみが出力された場合も）この手順は完了として扱う。`none` の場合、標準出力に出る現在のブランチ名とマージの案内をそのまま人への完了報告に含める（`gh pr merge`/`glab mr merge` は実行しない。マージは人が行う）。draft PR にするかは規定しない
-  8. 完了報告に `verdict_notes.py` の出力をそのまま含める（「指摘なし」の時も1行で含める）。取り出した情報（docs の追記箇所・Issue の URL・Issue にできなかったもの）も含める
+  8. PR の監視：手順7で GitHub の PR を作った時（`scripts/vcs_finish.sh` が PR の URL を出した時と、下の MCP 代替で PR を作った時）だけ行う。GitLab の MR・ホスティング無し（`none`）の時は対象外で、何もしない。実行環境に `subscribe_pr_activity` ツール（クラウドセッションなど。名前に `mcp__github__` などの接頭辞が付くことがある）がある時は、作った PR の URL（`https://github.com/<owner>/<repo>/pull/<番号>`）から owner・repo・番号を取り、`subscribe_pr_activity` を1回呼んで購読する。成功したら完了報告に「PR の監視を始めた」と PR の URL を書く。ツールが無い時・呼び出しが失敗した時は何もせず（再試行しない。手順を止めない）、完了報告に「監視は始めていない」と理由（ツールが無い・失敗したエラーの内容）を書く。購読後の CI の失敗・レビューコメントへの対応は実行環境の指示（PR イベントの扱い）に従い、この手順では規則を足さない。PR がマージ・close されたら `unsubscribe_pr_activity` で購読を解除する
+  9. 完了報告に `verdict_notes.py` の出力をそのまま含める（「指摘なし」の時も1行で含める）。取り出した情報（docs の追記箇所・Issue の URL・Issue にできなかったもの）も含める。手順8の PR の監視の結果（「PR の監視を始めた」か「監視は始めていない」か、対象外）も含める
   - 引数なしの `bash scripts/vcs_finish.sh`（`HARNESS_PR_BODY_FILE` 無し）は `/design` などが使う経路として残る。現在のブランチが `work/<計画IDの英小文字>` で `vault/plans/` に計画票があれば、`scripts/pr_body.py` のタスク履歴表を本文にして `<計画ID>: <ゴールの1行目>` のタイトルで PR/MR を作る。計画が見つからない時（`design/d-<YYYYMMDD>-<スラッグ>` など）は、GitHub は最新コミットの件名と本文で REST の PR を作り、GitLab は `glab mr create --fill --yes` を使う。引数がある時は既定を付けず、GitHub は `gh pr create`、GitLab は `glab mr create` にそのまま渡す
   - `bash scripts/vcs_finish.sh` が `gh`/`glab` コマンド自体が無いことによる失敗（`command not found` 相当の終了コード127、または本スクリプトが出す「`gh`/`glab` コマンドが見つかりません」という明示エラー）で終了した場合：GitHub であれば GitHub MCP ツール（例：実行環境で使える `mcp__github__create_pull_request` 等）で同内容の PR を作成してよい。`gh api` の PR 作成に渡すはずだったタイトル（`HARNESS_PR_TITLE` の値）・本文（本文ファイルの中身）・head（`HARNESS_PUSH_BRANCH` があればその値、無ければ現在のブランチ）・base（ベースブランチ。`HARNESS_BASE_BRANCH` の値、前後の空白を除いて空なら `main`）は、そのまま MCP ツールの引数に引き継ぐ。GitLab（`glab`）が同様の理由で失敗した場合も、GitLab MCP 等の代替手段が使える環境ではそれを使ってよい。使える代替手段が無い環境では、人にブランチ名と状況を案内して止まる。いずれの代替経路を使った場合も `gh pr merge`/`glab mr merge` は実行しない（マージは人が行うという既存方針は変わらない）。`gh` はあるが REST の呼び出しが失敗した時（認証エラー・ネットワークエラー・owner/repo が取れない終了コード2など）はこの代替の対象外とし、標準エラーの内容を添えて人に報告して止まる
 - どちらでもなければ、処理した ID と結果を1行ずつ報告して終わる
