@@ -55,11 +55,13 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should redirect to login when accessing protected page without auth', async ({ page }) => {
-    // Try to access the home page without authentication
-    await page.goto('/');
+    // Try to access the home page without authentication.
+    // The app redirects to /login on 401 before the page finishes loading, which aborts
+    // a goto waiting for "load", so only wait for the navigation to commit.
+    await page.goto('/', { waitUntil: 'commit' });
 
-    // Should redirect to login page
-    await page.waitForURL('/login', { timeout: 10000 });
+    // Should redirect to login page (toHaveURL polls, so the redirect may interrupt navigation)
+    await expect(page).toHaveURL(/\/login$/, { timeout: 10000 });
 
     // Verify login form is visible
     await expect(page.getByRole('heading', { name: /ログイン/i })).toBeVisible();

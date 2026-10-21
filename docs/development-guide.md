@@ -181,6 +181,39 @@ flowchart TD
 - `gh`・GitHub MCP・ハーネスで PR を作る時はテンプレートが自動で入らない。本文を該当テンプレートの見出しに沿って書く
 - 設計と実装を1つの PR にする場合（`/sdd-pipeline`）は、実装 PR 用テンプレートに設計 PR 用のセルフチェックとレビュー実施記録も含める
 
+### 3.1 依存更新 PR（Dependabot）
+
+Dependabot が作る依存更新 PR は、AI による影響確認を経て、条件を満たすものだけ自動マージされる。PR のテンプレートは上の表の「上記以外」の行に従う。
+
+**仕組み**
+
+- `.github/workflows/dependabot-review.yml` が `dependabot[bot]` の PR を契機に起動し、AI（claude-code-action）で依存更新の影響を確認する。結果は PR にコメントし、`ai-review:safe` か `ai-review:needs-human` のラベルを付ける
+- AI には読み取りと調査だけを許可しており、コードの変更・push・マージは許可していない
+
+**自動マージの条件**
+
+次の3条件をすべて満たす時だけ、AI とは別のジョブ（`automerge`）が `gh pr merge --auto --squash` で auto-merge を有効化する。
+
+1. Dependabot の PR であること（`dependabot[bot]`）
+2. 更新種別が `version-update:semver-patch` か `version-update:semver-minor` であること
+3. AI の判定が safe（`ai-review:safe`）であること
+
+マージの可否は AI ではなくワークフローの条件が判定する。auto-merge は有効化するだけで、必須チェックが通った時点で GitHub が squash でマージする。なお `GITHUB_TOKEN` で有効化した auto-merge によるマージでは、main への push を契機とするワークフロー（CI の `push` 起動）は動かない（GitHub の仕様で `GITHUB_TOKEN` による操作は新しいワークフローを起動しない）。
+
+**自動マージされない場合**
+
+- major（`version-update:semver-major`）は AI の判定に関係なく `ai-review:needs-human` になり、影響分析のコメントだけが付く。マージは人が行う
+- CI が失敗した PR は、必須チェックが通らないため auto-merge が有効でもマージされない。原因の確認と修正は人が行う（AI はコードを変更・push しない）
+- Pro プランの利用枠は人の対話利用と共有で、上限に達すると AI のステップが失敗する。その場合の判定は `needs-human` として扱われ、auto-merge に進まない
+
+**人が行う設定（この順で行う）**
+
+ブランチ保護・auto-merge の許可・シークレット登録は、人がリポジトリ設定で行う（ワークフローや API からは設定しない）。
+
+1. シークレット登録：ローカルで `claude setup-token` を実行して発行したトークンを、`CLAUDE_CODE_OAUTH_TOKEN` という名前で Actions secrets と Dependabot secrets の両方に登録する（Dependabot が起動したワークフローからは Dependabot secrets しか読めないため）
+2. ブランチ保護：main のブランチ保護で必須チェック `backend`・`frontend`・`e2e`（`.github/workflows/ci.yml` のジョブ）を設定する
+3. auto-merge の許可：リポジトリの Settings > General の「Allow auto-merge」を有効にする。必須チェックが設定されていないまま auto-merge を有効にすると即時マージされうるので、必ず2のブランチ保護を先に設定する
+
 ## 4. 新しい機能を追加するときのチェックリスト
 
 - [ ] 詳細設計書（`docs/projects/{案件}/detail-design/{機能ID}.md`）が存在し、レビュー済みである
