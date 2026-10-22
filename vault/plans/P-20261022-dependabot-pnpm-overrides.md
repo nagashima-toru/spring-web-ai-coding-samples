@@ -25,7 +25,7 @@ GitHub Issue #38「Dependabot が pnpm-lock.yaml の overrides を落とし、fr
 | T-01 | done | 1 | - | frontend/package.json の packageManager で pnpm を 9.15.9 に固定する | |
 | T-02 | done | 1 | - | Dependabot PR の lockfile を pnpm 9 で補正して push する workflow を追加する | |
 | T-03 | done | 1 | T-01,T-02 | 開発ガイドに lockfile の overrides の補正の仕組みと手作業の手順を書く | |
-| T-04 | review | 1 | T-01,T-02,T-03 | 計画の差分が `/code-review` を通過する | |
+| T-04 | blocked | 1 | T-01,T-02,T-03 | 計画の差分が `/code-review` を通過する | 人の判断が必要: .github/workflows/dependabot-lockfile.yml:18 付近。Dependabot 起動の pull_request イベントでは GITHUB_TOKEN が読み取り専用に制限されるため、`contents: write` を宣言しても `git push` が 403 になり、自動補正が動かない可能性がある（/code-review の指摘。この環境では実地確認できない）。直すにはトークンの種類（PAT・GitHub App・Dependabot シークレット、または pull_request_target 等）の設計変更が要る。何を使うか（および Dependabot 用シークレットの登録）を人が決める必要がある。docs の手作業手順は代替として残っている。 |
 
 ## 計画の受け入れ基準
 - 各タスクに成果物と受け入れ基準が1つずつある
