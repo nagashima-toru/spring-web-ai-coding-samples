@@ -1,0 +1,41 @@
+{
+  "task": "P-20261022-dependabot-pnpm-overrides/T-04",
+  "attempt": 1,
+  "result": "PASS",
+  "checked_at": "2026-10-22 13:51",
+  "criteria": [
+    {
+      "text": "`/code-review` で計画の差分に致命的な指摘が残っていない",
+      "ok": true,
+      "note": "実行: Skill code-review を worktree /home/user/spring-web-ai-coding-samples/.claude/worktrees/agent-e75ede32 の `git diff --merge-base main`（HARNESS_BASE_BRANCH は空なので main。vault 4種は除く）に対して実行。8件の指摘。致命的に当たり得るのは1件：dependabot-lockfile.yml:18 Dependabot 起動の pull_request では GITHUB_TOKEN が読み取り専用になり contents: write が効かず git push が 403 になり得る。直すにはトークンの種類の変更（PAT/GitHub App、pull_request_target 等）が要り、T-02 の「決定済み」と T-04 の決定済み（設計を変える修正はしない）に反するため FAIL にせず人の判断に回す。その他：pnpm/action-setup の version:9 と packageManager の衝突の指摘は、リポジトリ直下に package.json が無く action-setup が参照しない（T-01 の決定済み）ため誤指摘と判断。空コミット・検査失敗の原因の区別・github.actor 条件・docs の断定・§3.1 参照（`grep -n '^#' docs/development-guide.md` で `### 3.1 依存更新 PR（Dependabot）` が実在）は致命的でない／設計どおり。ルール参照: vault/rules/verifier/build-verification.md は工程タスク用で本タスクには適用しない。"
+    },
+    {
+      "text": "`pnpm -C frontend install --frozen-lockfile --lockfile-only --ignore-scripts 2>&1 | tail -1` の出力が `Done in` で始まり `using pnpm v9.15.9` で終わる",
+      "ok": true,
+      "note": "実行コマンド: `pnpm -C frontend install --frozen-lockfile --lockfile-only --ignore-scripts 2>&1 | tail -1`（worktree で実行） / 出力: Done in 686ms using pnpm v9.15.9"
+    },
+    {
+      "text": "`python3 -c 'print(__import__(\"yaml\").safe_load(open(\".github/workflows/dependabot-lockfile.yml\"))[\"jobs\"][\"repair-lockfile\"][\"if\"])'` の出力が `github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'` の1行になる",
+      "ok": true,
+      "note": "実行コマンド: 基準記載の python3 -c（worktree で実行） / 出力: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'（1行、一致）"
+    },
+    {
+      "text": "`python3 -c 'print((lambda r: ([c in r for c in (\"pnpm install --frozen-lockfile --lockfile-only --ignore-scripts\", \"pnpm install --lockfile-only --ignore-scripts\", \"gh workflow run ci.yml\")], chr(36) + \"{{\" in r))(\" \".join(x.get(\"run\", \"\") for x in __import__(\"yaml\").safe_load(open(\".github/workflows/dependabot-lockfile.yml\"))[\"jobs\"][\"repair-lockfile\"][\"steps\"])))'` の出力が `([True, True, True], False)` になる",
+      "ok": true,
+      "note": "実行コマンド: 基準記載の python3 -c（worktree で実行） / 出力: ([True, True, True], False)"
+    },
+    {
+      "text": "`npx -y prettier@3.9.9 --check frontend/package.json 2>&1 | tail -1` の出力が `All matched files use Prettier code style!` になる",
+      "ok": true,
+      "note": "実行コマンド: `npx -y prettier@3.9.9 --check frontend/package.json 2>&1 | tail -1`（worktree で実行） / 出力: All matched files use Prettier code style!"
+    },
+    {
+      "text": "`grep -c 'LOCKFILE_CONFIG_MISMATCH. で失敗' docs/development-guide.md` が `1` になる",
+      "ok": true,
+      "note": "実行コマンド: `grep -c 'LOCKFILE_CONFIG_MISMATCH. で失敗' docs/development-guide.md`（worktree で実行） / 出力: 1"
+    }
+  ],
+  "reasons": [
+    "人の判断が必要: .github/workflows/dependabot-lockfile.yml:18 付近。Dependabot 起動の pull_request イベントでは GITHUB_TOKEN が読み取り専用に制限されるため、`contents: write` を宣言しても `git push` が 403 になり、自動補正が動かない可能性がある（/code-review の指摘。この環境では実地確認できない）。直すにはトークンの種類（PAT・GitHub App・Dependabot シークレット、または pull_request_target 等）の設計変更が要る。何を使うか（および Dependabot 用シークレットの登録）を人が決める必要がある。docs の手作業手順は代替として残っている。"
+  ]
+}
