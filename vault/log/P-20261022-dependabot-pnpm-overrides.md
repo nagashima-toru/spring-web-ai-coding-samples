@@ -17,3 +17,4 @@
 - 2026-10-22 13:50 T-04 worktree path=/home/user/spring-web-ai-coding-samples/.claude/worktrees/agent-e75ede32 branch=worktree-agent-e75ede32 plan_head=d2be56a349a89b3444d4bf620b72a823088873de
 - 2026-10-22 13:50 T-04 doing→review attempt=1 creator=sonnet
 - 2026-10-22 13:51 T-04 review→blocked attempt=1 verifier=sonnet 人の判断が必要
+- 2026-10-22 14:52 T-04 blocked→todo 人の指示: /plan unblock P-20261022-dependabot-pnpm-overrides T-04
