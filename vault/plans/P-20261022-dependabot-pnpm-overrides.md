@@ -1,6 +1,6 @@
 ---
 id: P-20261022-dependabot-pnpm-overrides
-status: approved
+status: done
 ---
 # ゴール
 
