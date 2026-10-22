@@ -206,6 +206,32 @@ Dependabot が作る依存更新 PR は、AI による影響確認を経て、�
 - CI が失敗した PR は、必須チェックが通らないため auto-merge が有効でもマージされない。原因の確認と修正は人が行う（AI はコードを変更・push しない）
 - Pro プランの利用枠は人の対話利用と共有で、上限に達すると AI のステップが失敗する。その場合の判定は `needs-human` として扱われ、auto-merge に進まない
 
+**lockfile の overrides の補正**
+
+- 事象：Dependabot が再生成した `frontend/pnpm-lock.yaml` からトップレベルの `overrides:` が消え、CI の `pnpm install --frozen-lockfile` が失敗する（Issue #38）
+- 原因（推定）：`packageManager` が無い時、Dependabot は package.json の `pnpm` フィールドを読まない新しい pnpm（pnpm 12 で確認）で lockfile を再生成する。Dependabot 側の版は確認できていないので推定である
+- 防ぐ仕組み：`frontend/package.json` の `packageManager` で pnpm を 9.15.9 に固定している（CI の `pnpm/action-setup` の `version: 9` と合わせる）
+- 自動補正：`.github/workflows/dependabot-lockfile.yml` が、Dependabot の push の時に pnpm 9 で frozen の検査をし、失敗したら lockfile を再生成してコミットし、PR のブランチに push して `gh workflow run` で CI を起動し直す
+  - `GITHUB_TOKEN` の push は新しい workflow を起動しないため、CI は `gh workflow run` で明示的に起動する
+  - `--ignore-scripts` を付け、依存のスクリプトを動かさない
+- 限界：起動し直した CI が PR の必須チェックとして扱われない時は、PR を閉じて開き直す（`pull_request` の `reopened` で CI が動く）
+- 手作業の手順（自動補正が動かない・失敗した時）：
+
+```bash
+git fetch origin <PR のブランチ名>
+git switch <PR のブランチ名>
+cd frontend
+pnpm --version   # 9.15.9 であること
+pnpm install --lockfile-only --ignore-scripts                    # 再生成
+pnpm install --frozen-lockfile --lockfile-only --ignore-scripts  # 確認
+git add pnpm-lock.yaml
+git commit -m "chore(deps): pnpm 9 で pnpm-lock.yaml を再生成して overrides を復元する"
+git push origin <PR のブランチ名>
+```
+
+- pnpm 10 以降は `packageManager` を見て 9.15.9 に切り替わる
+- `@dependabot rebase` をすると補正のコミットは消えるが、自動補正がまた動く
+
 **人が行う設定（この順で行う）**
 
 ブランチ保護・auto-merge の許可・シークレット登録は、人がリポジトリ設定で行う（ワークフローや API からは設定しない）。
@@ -283,3 +309,4 @@ Dependabot が作る依存更新 PR は、AI による影響確認を経て、�
 | ブラウザで CORS エラー（ローカル） | `application-local.yml` の `app.security.cors.allowed-origins` に frontend のオリジンがあるか確認する |
 | ローカル DB を初期化したい | `docker compose -f docker/compose.yaml down -v && docker compose -f docker/compose.yaml up -d` |
 | Playwright のブラウザ版数が合わない（クラウド環境） | `PLAYWRIGHT_CHROMIUM_EXECUTABLE` に導入済み Chromium のパスを設定して `pnpm test:e2e` |
+| frontend の `pnpm install --frozen-lockfile` が `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` で失敗 | lockfile の overrides が落ちている。§3.1 の手作業の手順で pnpm 9 で再生成してコミットする |
