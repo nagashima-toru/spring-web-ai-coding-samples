@@ -1,0 +1,64 @@
+# Dependabot の frontend の PR で pnpm-lock.yaml の overrides が落ちていた時に、pnpm 9 で lockfile を再生成して PR のブランチに push し、CI を起動し直す
+name: Dependabot lockfile 補正
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - frontend/package.json
+      - frontend/pnpm-lock.yaml
+
+permissions: {}
+
+jobs:
+  repair-lockfile:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: false
+
+      - name: pnpm セットアップ
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: lockfile の整合性検査
+        id: check
+        working-directory: frontend
+        run: |
+          if pnpm install --frozen-lockfile --lockfile-only --ignore-scripts; then
+            echo "repair=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "repair=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: lockfile の再生成
+        if: steps.check.outputs.repair == 'true'
+        working-directory: frontend
+        run: pnpm install --lockfile-only --ignore-scripts
+
+      - name: コミットと push と CI の起動
+        if: steps.check.outputs.repair == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/pnpm-lock.yaml
+          git commit -m 'chore(deps): pnpm 9 で pnpm-lock.yaml を再生成して overrides を復元する'
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${HEAD_REF}"
+          gh workflow run ci.yml --ref "$HEAD_REF"
