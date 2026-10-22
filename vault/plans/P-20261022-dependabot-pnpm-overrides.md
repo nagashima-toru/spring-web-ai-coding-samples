@@ -24,7 +24,7 @@ GitHub Issue #38「Dependabot が pnpm-lock.yaml の overrides を落とし、fr
 |---|---|---|---|---|---|
 | T-01 | done | 1 | - | frontend/package.json の packageManager で pnpm を 9.15.9 に固定する | |
 | T-02 | done | 1 | - | Dependabot PR の lockfile を pnpm 9 で補正して push する workflow を追加する | |
-| T-03 | todo | 0 | T-01,T-02 | 開発ガイドに lockfile の overrides の補正の仕組みと手作業の手順を書く | |
+| T-03 | doing | 1 | T-01,T-02 | 開発ガイドに lockfile の overrides の補正の仕組みと手作業の手順を書く | |
 | T-04 | todo | 0 | T-01,T-02,T-03 | 計画の差分が `/code-review` を通過する | |
 
 ## 計画の受け入れ基準
