@@ -14,11 +14,15 @@ import {
   http
 } from 'msw';
 import type {
+  HttpResponseResolver,
+  PathParams,
   RequestHandlerOptions
 } from 'msw';
 
 import type {
+  LoginRequest,
   LoginResponse,
+  RefreshRequest,
   UserResponse
 } from '../models';
 
@@ -31,8 +35,8 @@ import {
 export { getLoginResponseMock, getRefreshTokenResponseMock, getGetCurrentUserResponseMock } from './auth.faker';
 
 
-export const getLoginMockHandler = (overrideResponse?: LoginResponse | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<LoginResponse> | LoginResponse), options?: RequestHandlerOptions) => {
-  return http.post('*/api/auth/login', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+export const getLoginMockHandler = (overrideResponse?: LoginResponse | ((info: Parameters<HttpResponseResolver<PathParams, LoginRequest>>[0]) => Promise<LoginResponse> | LoginResponse), options?: RequestHandlerOptions) => {
+  return http.post<PathParams, LoginRequest>('*/api/auth/login', async (info: Parameters<HttpResponseResolver<PathParams, LoginRequest>>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined
@@ -43,8 +47,8 @@ export const getLoginMockHandler = (overrideResponse?: LoginResponse | ((info: P
   }, options)
 }
 
-export const getRefreshTokenMockHandler = (overrideResponse?: LoginResponse | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<LoginResponse> | LoginResponse), options?: RequestHandlerOptions) => {
-  return http.post('*/api/auth/refresh', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+export const getRefreshTokenMockHandler = (overrideResponse?: LoginResponse | ((info: Parameters<HttpResponseResolver<PathParams, RefreshRequest>>[0]) => Promise<LoginResponse> | LoginResponse), options?: RequestHandlerOptions) => {
+  return http.post<PathParams, RefreshRequest>('*/api/auth/refresh', async (info: Parameters<HttpResponseResolver<PathParams, RefreshRequest>>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined
@@ -55,8 +59,8 @@ export const getRefreshTokenMockHandler = (overrideResponse?: LoginResponse | ((
   }, options)
 }
 
-export const getLogoutMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
-  return http.post('*/api/auth/logout', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+export const getLogoutMockHandler = (overrideResponse?: void | ((info: Parameters<HttpResponseResolver<PathParams, RefreshRequest>>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.post<PathParams, RefreshRequest>('*/api/auth/logout', async (info: Parameters<HttpResponseResolver<PathParams, RefreshRequest>>[0]) => {
   if (typeof overrideResponse === 'function') {await overrideResponse(info); }
 
     return new HttpResponse(null,
@@ -65,8 +69,8 @@ export const getLogoutMockHandler = (overrideResponse?: void | ((info: Parameter
   }, options)
 }
 
-export const getGetCurrentUserMockHandler = (overrideResponse?: UserResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<UserResponse> | UserResponse), options?: RequestHandlerOptions) => {
-  return http.get('*/api/users/me', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+export const getGetCurrentUserMockHandler = (overrideResponse?: UserResponse | ((info: Parameters<HttpResponseResolver>[0]) => Promise<UserResponse> | UserResponse), options?: RequestHandlerOptions) => {
+  return http.get('*/api/users/me', async (info: Parameters<HttpResponseResolver>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined

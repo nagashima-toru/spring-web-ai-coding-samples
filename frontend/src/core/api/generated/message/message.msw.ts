@@ -14,11 +14,14 @@ import {
   http
 } from 'msw';
 import type {
+  HttpResponseResolver,
+  PathParams,
   RequestHandlerOptions
 } from 'msw';
 
 import type {
   MessagePage,
+  MessageRequest,
   MessageResponse
 } from '../models';
 
@@ -32,8 +35,8 @@ import {
 export { getGetAllMessagesResponseMock, getCreateMessageResponseMock, getGetMessageByIdResponseMock, getUpdateMessageResponseMock } from './message.faker';
 
 
-export const getGetAllMessagesMockHandler = (overrideResponse?: MessagePage | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<MessagePage> | MessagePage), options?: RequestHandlerOptions) => {
-  return http.get('*/api/messages', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+export const getGetAllMessagesMockHandler = (overrideResponse?: MessagePage | ((info: Parameters<HttpResponseResolver>[0]) => Promise<MessagePage> | MessagePage), options?: RequestHandlerOptions) => {
+  return http.get('*/api/messages', async (info: Parameters<HttpResponseResolver>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined
@@ -44,8 +47,8 @@ export const getGetAllMessagesMockHandler = (overrideResponse?: MessagePage | ((
   }, options)
 }
 
-export const getCreateMessageMockHandler = (overrideResponse?: MessageResponse | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<MessageResponse> | MessageResponse), options?: RequestHandlerOptions) => {
-  return http.post('*/api/messages', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+export const getCreateMessageMockHandler = (overrideResponse?: MessageResponse | ((info: Parameters<HttpResponseResolver<PathParams, MessageRequest>>[0]) => Promise<MessageResponse> | MessageResponse), options?: RequestHandlerOptions) => {
+  return http.post<PathParams, MessageRequest>('*/api/messages', async (info: Parameters<HttpResponseResolver<PathParams, MessageRequest>>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined
@@ -56,8 +59,8 @@ export const getCreateMessageMockHandler = (overrideResponse?: MessageResponse |
   }, options)
 }
 
-export const getGetMessageByIdMockHandler = (overrideResponse?: MessageResponse | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<MessageResponse> | MessageResponse), options?: RequestHandlerOptions) => {
-  return http.get('*/api/messages/:id', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+export const getGetMessageByIdMockHandler = (overrideResponse?: MessageResponse | ((info: Parameters<HttpResponseResolver<{ id: string }>>[0]) => Promise<MessageResponse> | MessageResponse), options?: RequestHandlerOptions) => {
+  return http.get<{ id: string }>('*/api/messages/:id', async (info: Parameters<HttpResponseResolver<{ id: string }>>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined
@@ -68,8 +71,8 @@ export const getGetMessageByIdMockHandler = (overrideResponse?: MessageResponse 
   }, options)
 }
 
-export const getUpdateMessageMockHandler = (overrideResponse?: MessageResponse | ((info: Parameters<Parameters<typeof http.put>[1]>[0]) => Promise<MessageResponse> | MessageResponse), options?: RequestHandlerOptions) => {
-  return http.put('*/api/messages/:id', async (info: Parameters<Parameters<typeof http.put>[1]>[0]) => {
+export const getUpdateMessageMockHandler = (overrideResponse?: MessageResponse | ((info: Parameters<HttpResponseResolver<{ id: string }, MessageRequest>>[0]) => Promise<MessageResponse> | MessageResponse), options?: RequestHandlerOptions) => {
+  return http.put<{ id: string }, MessageRequest>('*/api/messages/:id', async (info: Parameters<HttpResponseResolver<{ id: string }, MessageRequest>>[0]) => {
 
 
     return HttpResponse.json(overrideResponse !== undefined
@@ -80,8 +83,8 @@ export const getUpdateMessageMockHandler = (overrideResponse?: MessageResponse |
   }, options)
 }
 
-export const getDeleteMessageMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
-  return http.delete('*/api/messages/:id', async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {
+export const getDeleteMessageMockHandler = (overrideResponse?: void | ((info: Parameters<HttpResponseResolver<{ id: string }>>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete<{ id: string }>('*/api/messages/:id', async (info: Parameters<HttpResponseResolver<{ id: string }>>[0]) => {
   if (typeof overrideResponse === 'function') {await overrideResponse(info); }
 
     return new HttpResponse(null,
