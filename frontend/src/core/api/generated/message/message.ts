@@ -111,6 +111,10 @@ export type GetAllMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof ge
 export type GetAllMessagesQueryError = BadRequestResponse | UnauthorizedResponse
 
 
+/**
+ * すべてのメッセージを取得します。ページネーションに対応しています。
+ * @summary メッセージ一覧取得
+ */
 export function useGetAllMessages<TData = Awaited<ReturnType<typeof getAllMessages>>, TError = BadRequestResponse | UnauthorizedResponse>(
  params: undefined |  GetAllMessagesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllMessages>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -121,6 +125,10 @@ export function useGetAllMessages<TData = Awaited<ReturnType<typeof getAllMessag
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * すべてのメッセージを取得します。ページネーションに対応しています。
+ * @summary メッセージ一覧取得
+ */
 export function useGetAllMessages<TData = Awaited<ReturnType<typeof getAllMessages>>, TError = BadRequestResponse | UnauthorizedResponse>(
  params?: GetAllMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllMessages>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -131,14 +139,18 @@ export function useGetAllMessages<TData = Awaited<ReturnType<typeof getAllMessag
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * すべてのメッセージを取得します。ページネーションに対応しています。
+ * @summary メッセージ一覧取得
+ */
 export function useGetAllMessages<TData = Awaited<ReturnType<typeof getAllMessages>>, TError = BadRequestResponse | UnauthorizedResponse>(
  params?: GetAllMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllMessages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
+ * すべてのメッセージを取得します。ページネーションに対応しています。
  * @summary メッセージ一覧取得
  */
-
 export function useGetAllMessages<TData = Awaited<ReturnType<typeof getAllMessages>>, TError = BadRequestResponse | UnauthorizedResponse>(
  params?: GetAllMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllMessages>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
@@ -212,6 +224,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateMessageMutationVariables = {data: MessageRequest}
 
     /**
+ * 新しいメッセージを作成します。
  * @summary メッセージ作成
  */
 export const useCreateMessage = <TError = BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | ConflictResponse,
@@ -272,6 +285,10 @@ export type GetMessageByIdQueryResult = NonNullable<Awaited<ReturnType<typeof ge
 export type GetMessageByIdQueryError = UnauthorizedResponse | NotFoundResponse
 
 
+/**
+ * IDでメッセージを取得します
+ * @summary メッセージ取得
+ */
 export function useGetMessageById<TData = Awaited<ReturnType<typeof getMessageById>>, TError = UnauthorizedResponse | NotFoundResponse>(
  id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -282,6 +299,10 @@ export function useGetMessageById<TData = Awaited<ReturnType<typeof getMessageBy
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * IDでメッセージを取得します
+ * @summary メッセージ取得
+ */
 export function useGetMessageById<TData = Awaited<ReturnType<typeof getMessageById>>, TError = UnauthorizedResponse | NotFoundResponse>(
  id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -292,14 +313,18 @@ export function useGetMessageById<TData = Awaited<ReturnType<typeof getMessageBy
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * IDでメッセージを取得します
+ * @summary メッセージ取得
+ */
 export function useGetMessageById<TData = Awaited<ReturnType<typeof getMessageById>>, TError = UnauthorizedResponse | NotFoundResponse>(
  id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
+ * IDでメッセージを取得します
  * @summary メッセージ取得
  */
-
 export function useGetMessageById<TData = Awaited<ReturnType<typeof getMessageById>>, TError = UnauthorizedResponse | NotFoundResponse>(
  id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessageById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
@@ -374,6 +399,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateMessageMutationVariables = {id: number;data: MessageRequest}
 
     /**
+ * 既存のメッセージを更新します
  * @summary メッセージ更新
  */
 export const useUpdateMessage = <TError = BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse,
@@ -440,6 +466,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteMessageMutationVariables = {id: number}
 
     /**
+ * メッセージを削除します
  * @summary メッセージ削除
  */
 export const useDeleteMessage = <TError = UnauthorizedResponse | ForbiddenResponse | NotFoundResponse,

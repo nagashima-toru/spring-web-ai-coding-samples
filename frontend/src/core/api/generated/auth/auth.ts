@@ -114,6 +114,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type LoginMutationVariables = {data: LoginRequest}
 
     /**
+ * ユーザー名とパスワードでログインし、JWTトークンを取得します。
  * @summary ログイン
  */
 export const useLogin = <TError = UnauthorizedResponse,
@@ -182,6 +183,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RefreshTokenMutationVariables = {data: RefreshRequest}
 
     /**
+ * リフレッシュトークンを使用して新しいアクセストークンを取得します。
  * @summary トークンリフレッシュ
  */
 export const useRefreshToken = <TError = UnauthorizedResponse,
@@ -250,6 +252,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type LogoutMutationVariables = {data: RefreshRequest}
 
     /**
+ * リフレッシュトークンを無効化してログアウトします。
  * @summary ログアウト
  */
 export const useLogout = <TError = UnauthorizedResponse,
@@ -311,6 +314,11 @@ export type GetCurrentUserQueryResult = NonNullable<Awaited<ReturnType<typeof ge
 export type GetCurrentUserQueryError = UnauthorizedResponse
 
 
+/**
+ * 現在ログイン中のユーザー情報を取得します。
+ * レスポンスにはユーザー名とロール情報が含まれます。
+ * @summary ユーザー情報取得
+ */
 export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUser>>, TError = UnauthorizedResponse>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -321,6 +329,11 @@ export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUs
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * 現在ログイン中のユーザー情報を取得します。
+ * レスポンスにはユーザー名とロール情報が含まれます。
+ * @summary ユーザー情報取得
+ */
 export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUser>>, TError = UnauthorizedResponse>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -331,14 +344,20 @@ export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUs
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * 現在ログイン中のユーザー情報を取得します。
+ * レスポンスにはユーザー名とロール情報が含まれます。
+ * @summary ユーザー情報取得
+ */
 export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUser>>, TError = UnauthorizedResponse>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
+ * 現在ログイン中のユーザー情報を取得します。
+ * レスポンスにはユーザー名とロール情報が含まれます。
  * @summary ユーザー情報取得
  */
-
 export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUser>>, TError = UnauthorizedResponse>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
