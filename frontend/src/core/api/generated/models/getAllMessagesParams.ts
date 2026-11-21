@@ -11,16 +11,16 @@
  */
 
 export type GetAllMessagesParams = {
-/**
- * ページ番号（0から始まる）
- * @minimum 0
- * @maximum 10000
- */
-page?: number;
-/**
- * 1ページあたりの件数
- * @minimum 1
- * @maximum 100
- */
-size?: number;
+  /**
+   * ページ番号（0から始まる）
+   * @minimum 0
+   * @maximum 10000
+   */
+  page?: number;
+  /**
+   * 1ページあたりの件数
+   * @minimum 1
+   * @maximum 100
+   */
+  size?: number;
 };
