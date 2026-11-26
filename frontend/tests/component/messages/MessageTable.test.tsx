@@ -565,7 +565,7 @@ describe('MessageTable', () => {
 
       const infoMessage = screen.getByTestId('readonly-info-message');
       expect(infoMessage).toBeInTheDocument();
-      expect(infoMessage).toHaveTextContent(/閲覧のみ可能です/);
+      expect(infoMessage).toHaveTextContent('閲覧のみ可能です');
     });
   });
 });
